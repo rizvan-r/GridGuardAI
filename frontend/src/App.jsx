@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import BottomNav from './components/BottomNav';
 import NodeDrawer from './components/NodeDrawer';
 
 import OverviewPage from './pages/OverviewPage';
@@ -23,6 +24,7 @@ export default function App() {
   const [activePage, setActivePage] = useState('overview');
   const [scenario, setScenario] = useState('EVENING_UNMETERED');
   const [seed, setSeed] = useState(42);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [summary, setSummary] = useState(null);
   const [readings, setReadings] = useState([]);
@@ -107,6 +109,8 @@ export default function App() {
         setActivePage={setActivePage}
         activeAlertsCount={alerts.filter(a => a.status === 'Open').length}
         systemStatus={summary?.system_status}
+        mobileOpen={mobileMenuOpen}
+        onCloseMobile={() => setMobileMenuOpen(false)}
       />
 
       <div className="main-wrapper">
@@ -119,6 +123,7 @@ export default function App() {
           onRunSimulation={handleRunSimulation}
           loading={loading}
           systemStatus={summary?.system_status}
+          onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
         />
 
         {error && (
@@ -175,6 +180,13 @@ export default function App() {
             <SettingsPage />
           )}
         </main>
+
+        {/* Mobile Bottom Navigation Bar (Hidden on desktop via CSS) */}
+        <BottomNav 
+          activePage={activePage}
+          setActivePage={setActivePage}
+          activeAlertsCount={alerts.filter(a => a.status === 'Open').length}
+        />
       </div>
 
       {/* Slide-over Node Detail Drawer */}

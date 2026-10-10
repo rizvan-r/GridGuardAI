@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, RotateCcw, Activity } from 'lucide-react';
+import { Play, RotateCcw, Activity, Menu } from 'lucide-react';
 
 export default function Header({ 
   pageTitle, 
@@ -9,7 +9,8 @@ export default function Header({
   setSeed, 
   onRunSimulation, 
   loading,
-  systemStatus 
+  systemStatus,
+  onToggleMobileMenu
 }) {
   const scenarios = [
     { id: 'EVENING_UNMETERED', label: 'Scenario B: Evening Unmetered Load (19:00 - 22:00)' },
@@ -22,6 +23,14 @@ export default function Header({
   return (
     <header className="top-header">
       <div className="header-left">
+        <button 
+          className="mobile-menu-btn" 
+          onClick={onToggleMobileMenu} 
+          aria-label="Open navigation menu"
+        >
+          <Menu size={20} />
+        </button>
+
         <h1 className="page-title">{pageTitle}</h1>
         {systemStatus && (
           <span className={`badge ${
@@ -67,7 +76,7 @@ export default function Header({
           disabled={loading}
         >
           <Play size={14} />
-          {loading ? 'Simulating...' : 'Run Simulation'}
+          <span>{loading ? 'Simulating...' : 'Run Simulation'}</span>
         </button>
 
         <button 
@@ -80,7 +89,7 @@ export default function Header({
           disabled={loading}
         >
           <RotateCcw size={14} />
-          Random
+          <span>Random</span>
         </button>
       </div>
     </header>
