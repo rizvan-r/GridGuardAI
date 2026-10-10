@@ -175,15 +175,7 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
               </div>
 
               {/* Energy Decomposition KPI strip */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(4, 1fr)', 
-                gap: '12px',
-                padding: '14px',
-                backgroundColor: 'var(--bg-subtle)',
-                borderRadius: '8px',
-                marginBottom: '16px'
-              }}>
+              <div className="incident-metrics-grid">
                 <div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Raw Discrepancy</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>

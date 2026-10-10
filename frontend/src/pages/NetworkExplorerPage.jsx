@@ -73,7 +73,7 @@ export default function NetworkExplorerPage({ networkTree, readings, onSelectNod
           </div>
 
           {/* Time range slider (00:00 to 23:45) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '320px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px', flex: '1 1 220px' }}>
             <Clock size={16} color="var(--accent-primary)" />
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '2px' }}>

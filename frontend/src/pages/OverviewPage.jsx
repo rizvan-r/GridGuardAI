@@ -53,17 +53,7 @@ export default function OverviewPage({ summary, readings, alerts, onNavigateToIn
   return (
     <div className="page-container">
       {/* Simulation Context Banner */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        backgroundColor: 'var(--bg-subtle)', 
-        padding: '10px 16px', 
-        borderRadius: 'var(--radius-md)',
-        marginBottom: '20px',
-        fontSize: '0.82rem',
-        border: '1px solid var(--border-subtle)'
-      }}>
+      <div className="simulation-context-banner">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span><strong>Active Feeder:</strong> {summary.feeder_name}</span>
           <span>•</span>
