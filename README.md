@@ -1,6 +1,6 @@
 # GridGuard AI: Intelligent Electricity Loss Localization
 
-**GridGuard AI** is a smart electricity distribution monitoring, loss-detection, and hierarchical loss-localization platform for rural distribution networks.
+**GridGuard AI** is a smart electricity distribution monitoring, loss-detection, and hierarchical loss-localization platform designed for rural distribution networks. It pinpoints unmetered losses and physical anomalies through statistical physics, hierarchical measurement placement, and explainable AI.
 
 ---
 
@@ -8,13 +8,13 @@
 
 A rural distribution feeder supplying **60 households across 6 distribution sections (A–F)** records an unmetered energy loss where the transformer bulk meter registers ~18% more energy than all 60 household meters record collectively. The discrepancy intensifies between **7:00 PM and 10:00 PM** and normalizes by midnight.
 
-### Key Principles:
-1. **Presumption of Innocence**: Statistical energy discrepancies indicate mathematical residuals across physical boundaries, not verified theft. Alternative engineering explanations (localized conductor degradation, current transformer saturation, meter firmware drift, and packet loss) are accounted for.
+### Core Engineering Principles:
+1. **Presumption of Innocence**: Statistical energy discrepancies indicate mathematical residuals across physical boundaries, not verified theft. Alternative engineering explanations (localized conductor degradation, current transformer saturation, meter firmware drift, and packet loss) are formally evaluated before accusations.
 2. **Measurement Placement over Frequency**: Pinpointing missing energy requires strategic spatial measurement placement rather than solely increasing polling rates.
 3. **Hierarchical 3-Level Decomposition**:
-   - **Level 1 (Feeder Level)**: Detect persistent unexplained feeder bulk discrepancy.
+   - **Level 1 (Feeder Level)**: Detect persistent unexplained feeder bulk discrepancy ($E_{\text{transformer}} - \sum E_h - E_{\text{tech}}$).
    - **Level 2 (Section Level)**: Compare synchronized header measurements across sections A–F to isolate the culprit hamlet.
-   - **Level 3 (Candidate Branch Level)**: Evaluate branch boundary measurements (U-01 to U-06) to rank candidate connection points.
+   - **Level 3 (Candidate Branch Level)**: Evaluate branch boundary measurements (U-01 to U-06) to rank candidate connection points without ground-truth leakage.
 
 ---
 
@@ -28,8 +28,8 @@ gridguard-ai/
 │   │   ├── main.py                  # FastAPI server with all analytical REST endpoints
 │   │   ├── models.py                # Pydantic schemas and response models
 │   │   ├── simulator.py             # 24h (96 interval) physics & energy simulator
-│   │   ├── energy_engine.py         # Energy conservation balance calculations
-│   │   ├── detector.py              # Robust Z-Score anomaly detector with persistence
+│   │   ├── energy_engine.py         # Energy conservation balance calculations & I²R loss models
+│   │   ├── detector.py              # Robust Z-Score anomaly detector with persistence filter
 │   │   ├── localizer.py             # Hierarchical 3-level localization engine
 │   │   ├── measurement_planner.py   # Tree observability & sensor placement engine
 │   │   ├── gemini_service.py        # Gemini Live API & Deterministic Demo Explainer
@@ -38,19 +38,20 @@ gridguard-ai/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Header.jsx           # Scenario picker, seed control, status badge
-│   │   │   ├── Sidebar.jsx          # 6-page navigation sidebar
-│   │   │   └── NodeDrawer.jsx       # Interactive slide-over telemetry inspector
+│   │   │   ├── Header.jsx           # Responsive header, scenario picker, seed control, status badge
+│   │   │   ├── Sidebar.jsx          # Fixed desktop navigation sidebar & off-canvas drawer
+│   │   │   ├── BottomNav.jsx        # 6-item mobile bottom navigation bar with alert badges
+│   │   │   └── NodeDrawer.jsx       # Interactive slide-over / bottom-sheet telemetry inspector
 │   │   ├── pages/
-│   │   │   ├── OverviewPage.jsx     # Executive KPI cards, 24h & 7-10 PM surge charts
-│   │   │   ├── NetworkExplorerPage.jsx # SVG interactive network tree (60 nodes)
-│   │   │   ├── AnomalyDetectionPage.jsx# Z-score trajectory & 96-interval ledger
+│   │   │   ├── OverviewPage.jsx     # Executive KPI cards, 24h & 7-10 PM surge charts, mobile alert cards
+│   │   │   ├── NetworkExplorerPage.jsx # SVG interactive network tree & mobile section card view
+│   │   │   ├── AnomalyDetectionPage.jsx# Z-score trajectory & 96-interval telemetry cards/ledger
 │   │   │   ├── MeasurementPlannerPage.jsx# Observability & inspection strategy simulator
 │   │   │   ├── InvestigationCenterPage.jsx# Incident dossier, status workflow, AI explainer
 │   │   │   └── SettingsPage.jsx     # Physical constants & backend health
 │   │   ├── api.js                   # REST client with automatic /api proxy
 │   │   ├── App.jsx                  # Main view coordinator
-│   │   ├── index.css                # Polished design system
+│   │   ├── index.css                # Polished design system with responsive tokens
 │   │   └── main.jsx
 │   ├── package.json
 │   └── vite.config.js               # Dev server with proxy to backend port 8000
@@ -87,7 +88,36 @@ Switchable in real time via the UI or `POST /api/simulation/run`:
 
 ---
 
-## 4. Setup & Execution Commands
+## 4. Role of the Simulation Seed
+
+The simulation engine uses **Pseudorandom Number Generators (PRNG)** (`np.random.RandomState(seed)`). The **seed** parameter controls the underlying mathematical random state:
+
+- **Household Profile Jitter**: Generates natural daily behavioral variations across all 60 households so consumption curves look organic.
+- **Physical Meter Instrument Noise**: Models realistic measurement noise on the Class 0.5 bulk meter and Class 1.0 residential meters.
+- **Packet Loss Distribution**: In Scenario E, governs which AMI telemetry packets are dropped.
+- **Deterministic Reproducibility**: Using the same seed (e.g., `seed = 42`) guarantees **identical numerical results** across runs—essential for scientific audits, regression tests, and customer disputes.
+- **Stress Testing**: Changing the seed (or clicking **Random**) lets operators evaluate whether the anomaly detector catches losses under different noise and consumption conditions.
+
+---
+
+## 5. UI Architecture: Desktop & Mobile Optimization
+
+GridGuard AI delivers a unified interface that adapts seamlessly between desktop and mobile devices:
+
+### Desktop Experience (`> 768px`)
+- **Fixed Sidebar Navigation**: The sidebar remains locked (`position: fixed; width: 260px; height: 100vh`) while the main dashboard canvas scrolls independently.
+- **Side-by-Side Analytics**: Full multi-column grids for KPI tiles, dual 24h & evening zoom charts, interactive SVG tree map, and two-column investigation dossiers.
+
+### Mobile Experience (`<= 768px`)
+- **Compact Sticky Header (~48px)**: Streamlined bar with hamburger menu, page title, status indicator, and quick **Run** button. An expandable parameter tray lets users tweak Scenario and Seed on demand without sacrificing screen space.
+- **Mobile Bottom Navigation Bar**: 6-page bottom navigation bar (`BottomNav.jsx`) with safe-area insets and live incident counter badges.
+- **Touch-Friendly Alert Cards**: Replaces wide 9-column horizontal-scrolling tables with clean incident cards displaying severity, time, location, discrepancy values, Z-score, and a 1-tap **Investigate** button (with a **Cards | Table** toggle).
+- **Mobile Chart Tabs**: 1-tap pill switcher between *24h Balance*, *7–10 PM Peak*, and *Distribution Sections*.
+- **Section Cards & Bottom Sheet**: Mobile view toggle in Network Explorer switching between clean expandable section cards and the full SVG map, with a touch-friendly bottom sheet for node telemetry.
+
+---
+
+## 6. Setup & Execution Commands
 
 ### Prerequisites
 - Python 3.10+
@@ -120,10 +150,11 @@ Dashboard available at: `http://localhost:5173`
 python -m pytest tests/ -v
 python tests/verify_e2e.py
 ```
+*(All 21 backend unit and integration tests passing)*
 
 ---
 
-## 5. Mathematical Formulations
+## 7. Mathematical Formulations
 
 - **Raw Discrepancy**:
   $$\text{raw\_discrepancy} = E_{\text{transformer}} - \sum_{i=1}^{60} E_{\text{household}, i}$$
@@ -138,11 +169,12 @@ python tests/verify_e2e.py
 
 ---
 
-## 6. Demo Walkthrough
+## 8. Demo Walkthrough
 
-1. **Executive Overview**: Observe the 6 live calculated KPI cards (Transformer Supplied, Household Metered, Technical Losses, Unexplained Gap in kWh and %, Active Alerts). Inspect the 24h Line Chart and the 7 PM–10 PM surge area.
-2. **Network Explorer**: Explore the SVG hierarchy of Transformer T1, 6 Sections, 60 Households, and 6 Candidate taps. Click on **Section C** or **Branch U-03** to slide out the detailed telemetry drawer with hourly consumption charts.
-3. **Anomaly Detection**: View the statistical Z-score trajectory with Warning ($2.0\sigma$) and Critical ($3.2\sigma$) threshold lines, and filter the 96-interval telemetry ledger.
+1. **Executive Overview**: Observe the 6 live calculated KPI cards (Transformer Supplied, Household Metered, Technical Losses, Unexplained Gap in kWh and %, Active Alerts). Inspect the 24h Line Chart and the 7 PM–10 PM surge window.
+2. **Network Explorer**: Explore the SVG hierarchy of Transformer T1, 6 Sections, 60 Households, and 6 Candidate taps. Click on **Section C** or **Branch U-03** to slide out the detailed telemetry drawer.
+3. **Anomaly Detection**: View the statistical Z-score trajectory with Warning ($2.0\sigma$) and Critical ($3.2\sigma$) threshold lines, and filter the 96-interval telemetry cards or ledger.
 4. **Measurement Planner**: Toggle simulated clamp sensors and see how hierarchical placement reduces inspection steps from **60 steps down to 2–4 steps (93–96% reduction)**.
 5. **Investigation Center**: Review the incident dossier for **ALT-2026-001**, check the ranked candidate table (confirming U-03 rank #1), test 1-click AI loss explanation questions, and update the status to **"Under Review"** with audit trail logging.
 6. **Settings**: View backend service health, database mode (In-Memory Local Mode or Supabase), AI mode (Deterministic Demo or Gemini Live API), and ethical safeguards.
+
