@@ -1,0 +1,418 @@
+# Project: GridGuard AI — Intelligent Electricity Loss Localization
+
+Act as a senior full-stack developer, data engineer, and UI/UX designer. Build a complete, working hackathon prototype called **GridGuard AI**, a smart electricity distribution monitoring and loss-localization platform.
+
+Do not merely create a static UI or a landing page. Build an interactive application with working simulations, calculations, charts, network visualization, anomaly detection, and investigation workflows.
+
+## 1. Problem Statement
+
+A rural electricity feeder supplies 60 houses. The transformer meter records 18% more energy than all 60 household meters record collectively. The discrepancy increases between 7 PM and 10 PM and falls again by midnight. Physical inspections have not identified the cause.
+
+The hints are:
+
+1. The missing energy is being consumed or lost somewhere between two meters.
+2. Measuring the same electrical quantity at carefully selected points helps narrow down where the discrepancy occurs. Measurement placement matters more than measurement frequency alone.
+
+The objective is to detect unexplained energy discrepancies, identify suspicious distribution sections, and narrow down a simulated unauthorized connection using strategically placed measurement points.
+
+Important: An energy discrepancy does not automatically prove theft. Account for technical losses, measurement errors, missing readings, and legitimate loads. Exact connection localization must rely on sufficiently detailed measurements. Never falsely accuse a real household.
+
+## 2. Technology Stack
+
+Use the following stack:
+
+- Frontend: React + Vite + JavaScript.
+- Styling: Tailwind CSS, or a consistent CSS-based design system if Tailwind setup is unavailable.
+- Charts: Recharts.
+- Network visualization: React Flow or a lightweight custom SVG network diagram.
+- Backend: Python + FastAPI.
+- Database: Supabase PostgreSQL, with SQL schema and seed scripts.
+- Data analysis: Python, NumPy, and standard statistical methods.
+- Optional AI explanations: Gemini API, called exclusively through the backend.
+
+The application must work in DEMO MODE without any API keys, external hardware, or real electricity-meter data.
+
+Do not use hardcoded dashboard values as a substitute for actual calculations. Generate synthetic readings and calculate the displayed results dynamically.
+
+## 3. Visual Design
+
+Create a polished, minimalist, professional electricity-monitoring dashboard suitable for a hackathon presentation.
+
+Design direction:
+- Light background with white cards and subtle borders.
+- Dark navy text and restrained green, amber, and red status colors.
+- Clear typography and generous spacing.
+- Responsive desktop and tablet layouts.
+- Sidebar navigation with a compact header.
+- Interactive charts and network nodes.
+- Clear loading states, empty states, error messages, and success notifications.
+
+Avoid excessive gradients, glassmorphism, oversized headings, and decorative animations.
+
+Application name: GridGuard AI.
+
+Subtitle: Intelligent Electricity Loss Detection & Localization.
+
+Sidebar pages:
+1. Overview
+2. Network Explorer
+3. Anomaly Detection
+4. Measurement Planner
+5. Investigation Center
+6. Settings
+
+## 4. Synthetic Network
+
+Generate a fictional rural electricity distribution network containing:
+
+- One transformer.
+- One feeder.
+- Six distribution sections.
+- Ten households per section, giving 60 households.
+- Six simulated candidate connection points, one per section.
+- Transformer, section-level, household, and candidate-level measurement points.
+
+Generate a full 24-hour day of data at 15-minute intervals, resulting in 96 intervals per meter per day.
+
+Support the following scenarios:
+
+A. Normal Day:
+Household loads vary throughout the day. Simulate ordinary technical losses and small measurement errors. There should be no persistent unexplained anomaly.
+
+B. Evening Unmetered Load:
+Inject an additional simulated load between 7 PM and 10 PM at one hidden candidate connection. The default hidden location is U-03, within Section C.
+
+C. Meter Fault:
+Simulate one household meter under-recording its consumption. The detector should flag a discrepancy and consider a meter fault rather than automatically labelling it as theft.
+
+D. Multiple Anomalies:
+Simulate abnormal loads at two candidate locations.
+
+E. Noisy Measurements:
+Introduce missing readings and measurement noise. The application should identify low-quality data and reduce localization confidence.
+
+Allow users to switch scenarios and regenerate data using a random seed. Re-running the same scenario with the same seed must reproduce the same measurements.
+
+Keep the ground-truth hidden-load location separate from the detector's input. The localization algorithm must infer the location from simulated measurements rather than simply displaying the known scenario label.
+
+## 5. Overview Dashboard
+
+Display these live calculated metrics:
+
+- Transformer energy supplied, in kWh.
+- Total household energy recorded, in kWh.
+- Estimated technical losses, in kWh.
+- Unexplained energy discrepancy, in kWh.
+- Unexplained discrepancy percentage.
+- Number of active alerts.
+- Current scenario and simulation timestamp.
+
+Include:
+- A 24-hour line chart comparing transformer input, household consumption, and unexplained discrepancy.
+- An hourly discrepancy chart highlighting the 7 PM–10 PM window.
+- A distribution-section comparison chart.
+- A recent alerts table with timestamps, severity, affected section, and investigation status.
+
+Use a consistent definition for every energy metric. Calculate percentages using transformer input as the denominator, and do not double-count losses.
+
+## 6. Energy-Balance Engine
+
+Implement the following calculations in the backend.
+
+Raw discrepancy:
+
+raw_discrepancy_kwh = transformer_input_kwh - total_household_energy_kwh
+
+Unexplained discrepancy:
+
+unexplained_kwh = raw_discrepancy_kwh - estimated_technical_losses_kwh
+
+Unexplained discrepancy percentage:
+
+unexplained_pct = unexplained_kwh / transformer_input_kwh * 100
+
+Guard against zero denominators and invalid measurements.
+
+Retain signed residuals for diagnostics. Do not silently convert negative residuals to zero.
+
+For each distribution section, calculate:
+
+section_residual_kwh =
+section_incoming_energy_kwh
+- sum(downstream_household_energy_kwh)
+- estimated_section_losses_kwh
+
+Ensure the simulator conserves energy consistently. Incoming energy must account for household consumption, simulated unmetered loads, technical losses, and measurement noise.
+
+The 18% discrepancy in the challenge is a scenario to reproduce, not a value that should always be displayed regardless of the selected scenario.
+
+## 7. Anomaly Detection
+
+Implement a transparent statistical detector.
+
+Requirements:
+- Build historical or simulated baseline residuals for comparable times of day.
+- Calculate rolling mean and standard deviation.
+- Compute an anomaly score using a z-score or a documented robust alternative.
+- Use configurable thresholds.
+- Require repeated anomalies before escalating severity.
+- Flag insufficient history and missing readings.
+- Distinguish abnormal energy residuals from likely measurement-quality problems.
+- Provide evidence for every alert.
+
+Store:
+- Timestamp and interval.
+- Raw discrepancy.
+- Estimated technical losses.
+- Unexplained discrepancy.
+- Baseline residual.
+- Anomaly score.
+- Data-quality indicators.
+- Affected network section.
+- Candidate ranking and localization limitations.
+
+Do not claim that a statistical anomaly alone proves electricity theft.
+
+## 8. Hierarchical Localization
+
+This is the central feature.
+
+Implement a hierarchical localization algorithm that proceeds through:
+
+Level 1: Feeder
+Detect whether the feeder has a persistent unexplained discrepancy.
+
+Level 2: Distribution Section
+Compare synchronized incoming measurements, household readings, and expected technical losses for each of the six sections.
+
+Level 3: Candidate Connection
+Compare measurements at simulated candidate branch boundaries to narrow down the affected segment.
+
+For each candidate, calculate a residual from the simulated upstream and downstream measurements. Rank candidates based on residual magnitude, persistence, data quality, and consistency with the parent section's measurements.
+
+The algorithm must not use the ground-truth hidden location as a detection input.
+
+Show:
+- Ranked candidate locations.
+- Their measured residuals.
+- Anomaly persistence.
+- Supporting evidence.
+- Localization confidence or confidence category.
+- Measurement quality.
+- Why each candidate was ranked.
+- Which additional measurement would best reduce uncertainty.
+
+Clearly distinguish these outputs:
+- Feeder-level anomaly detected.
+- Suspicious section identified.
+- Candidate branch localized.
+- Exact connection confirmed by simulated ground truth.
+
+Do not present exact localization as proven unless the available measurements support it.
+
+The simulation may show successful identification of U-03 when U-03 is the actual injected location. Make it clear that the hidden location is a simulation ground-truth label.
+
+## 9. Measurement Planner
+
+Create an interactive measurement-planning page.
+
+Display the network as a tree:
+
+Transformer → Feeder → Six Sections → Ten Households per Section → Candidate Connection Points.
+
+Allow the user to select measurement points and simulate their availability.
+
+Explain which network segments can be distinguished with the currently available measurements and which remain ambiguous.
+
+Implement a simple measurement-placement strategy that selects a new measurement point to reduce the number of plausible candidate locations.
+
+Compare two strategies:
+- Sequential inspection of all 60 households.
+- Hierarchical localization using strategically placed section and branch measurements.
+
+Show the number of measurements and inspection steps needed in each simulation.
+
+Do not claim the measurement strategy is universally optimal. Explain its assumptions and limitations.
+
+A physical connection cannot be pinpointed from transformer and household readings alone if multiple network configurations produce identical measurements.
+
+## 10. Network Explorer
+
+Create an interactive network diagram.
+
+Requirements:
+- Transformer at the top.
+- Six section branches below it.
+- Ten household nodes in each section.
+- Candidate connection nodes.
+- Distinct visual states for normal, suspicious, and data-quality issues.
+- Clickable nodes that open a details panel.
+- Details panel shows readings, residuals, recent anomaly history, and related alerts.
+- Filters for scenario, section, time range, and status.
+
+Use deterministic node identifiers and keep the graph readable.
+
+## 11. Investigation Center
+
+Provide a usable investigation workflow.
+
+Each alert should contain:
+- Alert ID.
+- Scenario and timestamp.
+- Affected feeder and section.
+- Residual energy.
+- Anomaly score.
+- Ranked candidate locations.
+- Data-quality warnings.
+- Recommended next measurement or field inspection.
+- Investigation status.
+
+Allow an operator to change the status to:
+- Open.
+- Under Review.
+- Verified.
+- False Alarm.
+- Resolved.
+
+Keep an audit trail of status changes.
+
+The recommended actions must focus on verifying measurements, inspecting approved equipment, and reviewing technical losses. Never automatically accuse or penalize a household.
+
+## 12. Gemini AI Assistant
+
+Provide an optional AI explanation panel.
+
+Users can ask questions such as:
+- Why did the loss increase between 7 PM and 10 PM?
+- Why was Section C flagged?
+- What evidence supports the U-03 candidate?
+- Which additional measurement would help narrow the location?
+- Could a meter fault explain this anomaly?
+
+Send the AI only the relevant calculated evidence from the backend.
+
+System prompt:
+
+"You are GridGuard AI, an electricity distribution monitoring assistant. Explain supplied measurements and anomaly evidence in simple language. Distinguish measurements from estimates and simulated data. Never invent readings, claim that an anomaly proves theft, or accuse a person. Explain technical losses, meter faults, missing data, and unauthorized loads as alternative explanations. If the available measurements cannot establish an exact location, say so explicitly. Recommend appropriate verification by authorized utility personnel."
+
+If the Gemini key is missing, the application must still work. Provide a clearly labelled deterministic demo explanation mode.
+
+Never expose API keys in the frontend.
+
+## 13. FastAPI Backend
+
+Implement these endpoints:
+
+GET /api/health
+
+GET /api/feeders/T1/summary
+
+GET /api/feeders/T1/readings
+
+POST /api/simulation/run
+
+POST /api/detection/run
+
+GET /api/network/tree
+
+GET /api/alerts
+
+GET /api/alerts/{alert_id}
+
+PATCH /api/alerts/{alert_id}
+
+POST /api/alerts/{alert_id}/explain
+
+GET /api/measurement-planner/recommendation
+
+Use Pydantic request and response models, correct HTTP status codes, input validation, and useful error messages.
+
+Configure CORS for the frontend development origin.
+
+The simulation and detection endpoints must perform real calculations. The alert endpoint must return persisted or consistently generated alert records.
+
+Use environment variables for secrets and database connection settings.
+
+## 14. Supabase Database
+
+Create SQL files for:
+- feeders
+- network_nodes
+- meters
+- meter_readings
+- loss_alerts
+- investigation audit records
+- indexes and constraints
+- appropriate row-level security policies
+- synthetic seed data
+
+Store readings with timestamps, meter IDs, quality flags, and scenario IDs.
+
+Use a unique constraint to prevent duplicate meter readings for the same interval and scenario.
+
+Keep service-role credentials on the backend only. Do not disable security policies merely to make the application work.
+
+If Supabase is not configured, provide an explicit local demo-data mode that lets the application function without silently pretending that data was saved to Supabase.
+
+## 15. Testing and Quality
+
+Write tests for:
+- Energy-balance calculations.
+- Technical-loss calculations.
+- Normal-day false alarms.
+- Evening-anomaly detection.
+- Meter-fault handling.
+- Missing and noisy measurements.
+- Candidate ranking.
+- Ground-truth leakage prevention.
+- Reproducibility with a fixed seed.
+- API validation and error responses.
+
+Evaluate localization using top-1 accuracy, top-3 accuracy, false-positive rate, and detection delay across repeated simulation runs.
+
+Do not fabricate accuracy metrics. Calculate them from the test results.
+
+## 16. Deliverables
+
+Generate the complete working project with:
+
+1. React frontend.
+2. FastAPI backend.
+3. Supabase SQL schema.
+4. Synthetic data simulator.
+5. Anomaly detection and localization modules.
+6. Measurement-placement planner.
+7. Optional Gemini integration.
+8. Environment-variable example file without real secrets.
+9. README with installation and execution commands.
+10. Tests and a demo walkthrough.
+
+Use a clean monorepo structure:
+
+gridguard-ai/
+  frontend/
+  backend/
+  sql/
+  tests/
+  README.md
+  .env.example
+
+## 17. Development Instructions
+
+First inspect the current workspace. If it already contains a project, preserve useful files and integrate the application rather than overwriting unrelated work.
+
+Then:
+1. Create the application architecture.
+2. Implement the synthetic data model and energy calculations.
+3. Implement anomaly detection and hierarchical localization.
+4. Add the FastAPI endpoints.
+5. Build the interactive React dashboard.
+6. Connect the frontend to the backend.
+7. Add Supabase persistence and optional Gemini explanations.
+8. Run tests and fix errors.
+9. Verify the entire demo flow.
+10. Document exact startup commands.
+
+Do not stop after creating a plan or generating placeholder files. Implement the working application, run it, verify it, and report which features work and which require external configuration.
+
+Prioritize a reliable end-to-end demo over unnecessary complexity. If a feature cannot be completed, explain why and provide the working fallback.
