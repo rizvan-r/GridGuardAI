@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, RotateCcw, Activity, Menu, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, RotateCcw, Activity, Menu, SlidersHorizontal, ChevronDown, ChevronUp, Radio } from 'lucide-react';
 
 export default function Header({ 
   pageTitle, 
@@ -10,7 +10,8 @@ export default function Header({
   onRunSimulation, 
   loading,
   systemStatus,
-  onToggleMobileMenu
+  onToggleMobileMenu,
+  onOpenLiveSimulation
 }) {
   const [showMobileParams, setShowMobileParams] = useState(false);
 
@@ -21,8 +22,6 @@ export default function Header({
     { id: 'MULTIPLE_ANOMALIES', label: 'Scenario D: Multiple Lateral Anomalies', shortLabel: 'Scen D: Multiple Anomalies' },
     { id: 'NOISY_MEASUREMENTS', label: 'Scenario E: Noisy & Missing Telemetry', shortLabel: 'Scen E: Noisy Telemetry' },
   ];
-
-  const currentScenarioObj = scenarios.find(s => s.id === scenario) || scenarios[0];
 
   return (
     <header className="top-header">
@@ -48,8 +47,20 @@ export default function Header({
           )}
         </div>
 
-        {/* Mobile Quick Actions (Run & Parameters Toggle) */}
+        {/* Mobile Quick Actions (Live Sim, Run & Parameters Toggle) */}
         <div className="mobile-header-quick-actions">
+          {onOpenLiveSimulation && (
+            <button 
+              className="btn-secondary header-live-btn"
+              onClick={onOpenLiveSimulation}
+              title="Open Real-time Live Simulation"
+            >
+              <Radio size={13} color="#dc2626" />
+              <span>Live</span>
+              <span className="live-header-pulse" />
+            </button>
+          )}
+
           <button 
             className="btn-primary mobile-quick-run-btn"
             onClick={onRunSimulation}
@@ -83,7 +94,6 @@ export default function Header({
           >
             {scenarios.map((s) => (
               <option key={s.id} value={s.id}>
-                {/* Responsive label via conditional rendering */}
                 {s.label}
               </option>
             ))}
@@ -103,6 +113,18 @@ export default function Header({
         </div>
 
         <div className="header-control-buttons">
+          {onOpenLiveSimulation && (
+            <button 
+              className="btn-secondary header-live-btn desktop-only-btn"
+              onClick={onOpenLiveSimulation}
+              title="Open Real-time Live Simulation"
+            >
+              <Radio size={14} color="#dc2626" />
+              <span>Live Sim</span>
+              <span className="live-header-pulse" />
+            </button>
+          )}
+
           <button 
             className="btn-primary desktop-run-btn" 
             onClick={onRunSimulation}

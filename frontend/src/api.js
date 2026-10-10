@@ -120,3 +120,10 @@ export async function toggleSensor(sensorId, isActive) {
   if (!res.ok) throw new Error('Failed to toggle sensor');
   return res.json();
 }
+
+export async function fetchLiveStep(interval = 0) {
+  const res = await fetch(`${API_BASE}/simulation/live/step?interval=${Number(interval)}`);
+  if (!res.ok) throw new Error('Failed to fetch live simulation step');
+  return res.json();
+}
+

@@ -5,6 +5,7 @@ import BottomNav from './components/BottomNav';
 import NodeDrawer from './components/NodeDrawer';
 
 import OverviewPage from './pages/OverviewPage';
+import LiveSimulationPage from './pages/LiveSimulationPage';
 import NetworkExplorerPage from './pages/NetworkExplorerPage';
 import AnomalyDetectionPage from './pages/AnomalyDetectionPage';
 import MeasurementPlannerPage from './pages/MeasurementPlannerPage';
@@ -93,6 +94,7 @@ export default function App() {
   const getPageTitle = () => {
     switch (activePage) {
       case 'overview': return 'Executive Overview';
+      case 'livesim': return 'Real-Time Live Simulation & Anomaly Review';
       case 'network': return 'Distribution Network Explorer';
       case 'anomaly': return 'Statistical Anomaly Detection';
       case 'planner': return 'Measurement Placement Planner';
@@ -124,6 +126,7 @@ export default function App() {
           loading={loading}
           systemStatus={summary?.system_status}
           onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
+          onOpenLiveSimulation={() => setActivePage('livesim')}
         />
 
         {error && (
@@ -147,6 +150,20 @@ export default function App() {
               readings={readings}
               alerts={alerts}
               onNavigateToInvestigation={handleNavigateToInvestigation}
+            />
+          )}
+
+          {activePage === 'livesim' && (
+            <LiveSimulationPage 
+              readings={readings}
+              summary={summary}
+              alerts={alerts}
+              onNavigateToInvestigation={handleNavigateToInvestigation}
+              onNavigateToNetwork={(nodeId) => {
+                handleSelectNode(nodeId);
+                setActivePage('network');
+              }}
+              onNavigateToPlanner={() => setActivePage('planner')}
             />
           )}
 
@@ -183,7 +200,7 @@ export default function App() {
 
         {/* Mobile Bottom Navigation Bar (Hidden on desktop via CSS) */}
         <BottomNav 
-          activePage={activePage}
+          activePage={activePage} 
           setActivePage={setActivePage}
           activeAlertsCount={alerts.filter(a => a.status === 'Open').length}
         />

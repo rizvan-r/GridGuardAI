@@ -100,3 +100,18 @@ def test_alert_explain_endpoint(client):
 def test_node_detail_404(client):
     res = client.get("/api/network/node/NON_EXISTENT_NODE_999")
     assert res.status_code == 404
+
+
+def test_live_simulation_step(client):
+    res = client.get("/api/simulation/live/step?interval=80")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["interval_index"] == 80
+    assert data["time_str"] == "20:00"
+    assert "transformer_kwh" in data
+    assert "unexplained_kwh" in data
+    assert "anomaly_score" in data
+    assert "localization" in data
+    assert "top_candidate" in data["localization"]
+    assert "cumulative" in data
+

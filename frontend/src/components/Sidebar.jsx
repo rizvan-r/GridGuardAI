@@ -1,13 +1,14 @@
 import React from 'react';
 import { 
   LayoutDashboard, 
+  Radio,
   Network, 
   AlertTriangle, 
   SlidersHorizontal, 
   FileSearch, 
   Settings, 
   Zap,
-  ShieldCheck,
+  ShieldCheck, 
   X
 } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export default function Sidebar({
 }) {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'livesim', label: 'Live Simulation', icon: Radio, isLive: true },
     { id: 'network', label: 'Network Explorer', icon: Network },
     { id: 'anomaly', label: 'Anomaly Detection', icon: AlertTriangle },
     { id: 'planner', label: 'Measurement Planner', icon: SlidersHorizontal },
@@ -64,11 +66,12 @@ export default function Sidebar({
             return (
               <button
                 key={item.id}
-                className={`nav-item ${isActive ? 'active' : ''}`}
+                className={`nav-item ${isActive ? 'active' : ''} ${item.isLive ? 'live-nav-item' : ''}`}
                 onClick={() => handleNavClick(item.id)}
               >
-                <Icon size={18} />
+                <Icon size={18} color={item.isLive ? '#dc2626' : 'currentColor'} />
                 <span>{item.label}</span>
+                {item.isLive && <span className="nav-live-dot" />}
                 {item.badge > 0 && <span className="nav-badge">{item.badge}</span>}
               </button>
             );

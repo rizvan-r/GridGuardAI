@@ -263,6 +263,78 @@ def trigger_detection():
     }
 
 
+@app.get("/api/simulation/live/step")
+def get_live_simulation_step(interval: int = Query(0, ge=0, le=95)):
+    """
+    Retrieve real-time telemetry, anomaly evaluation, and hierarchical localization
+    for a specific 15-minute interval during live simulation playback.
+    """
+    if not storage.current_simulation:
+        run_pipeline()
+
+    state = storage.current_simulation
+    sim_data = state["sim_data"]
+    disc = state["discrepancies"]
+    det = state["det_results"]
+    sec_res = state["section_res"]
+    cand_res = state["candidate_res"]
+
+    i = interval
+    time_str = get_interval_time(i)
+
+    # Localize specifically for this active interval
+    window_loc = HierarchicalLocalizer.localize(
+        feeder_unexplained_residuals=disc["unexplained"],
+        section_residuals=sec_res,
+        candidate_branch_residuals=cand_res,
+        interval_data_quality=det["interval_data_quality"],
+        active_interval_index=i,
+    )
+
+    sec_breakdown = {sec: round(float(sec_res[sec]["residual"][i]), 3) for sec in SECTIONS}
+    
+    # Cumulative stats up to interval i
+    cum_transformer = float(np.sum(sim_data["transformer_input"][:i+1]))
+    cum_household = float(np.sum(sim_data["total_household_reported"][:i+1]))
+    cum_tech_loss = float(np.sum(sim_data["total_technical_loss"][:i+1]))
+    cum_unexplained = float(np.sum(disc["unexplained"][:i+1]))
+
+    matching_alert = next((a for a in storage.get_alerts() if a.interval_index == i), None)
+
+    return {
+        "interval_index": i,
+        "time_str": time_str,
+        "transformer_kwh": round(float(sim_data["transformer_input"][i]), 3),
+        "household_total_kwh": round(float(sim_data["total_household_reported"][i]), 3),
+        "technical_loss_kwh": round(float(sim_data["total_technical_loss"][i]), 3),
+        "raw_discrepancy_kwh": round(float(disc["raw_discrepancy"][i]), 3),
+        "unexplained_kwh": round(float(disc["unexplained"][i]), 3),
+        "unexplained_pct": round(float(disc["unexplained_pct"][i]), 2),
+        "anomaly_score": round(float(det["anomaly_scores"][i]), 2),
+        "is_anomaly": bool(det["is_anomalous"][i]),
+        "severity": det["severity_labels"][i],
+        "dominant_section": det["dominant_sections"][i] or window_loc["section_status"]["top_section_id"],
+        "data_quality": det["interval_data_quality"][i],
+        "section_breakdown": sec_breakdown,
+        "localization": {
+            "top_section": window_loc["section_status"]["top_section_id"],
+            "top_candidate": window_loc["top_candidate"].model_dump(),
+            "candidate_rankings": [c.model_dump() for c in window_loc["candidate_rankings"]],
+            "hierarchical_path": f"Feeder T1 ➔ Section {window_loc['section_status']['top_section_id']} ➔ {window_loc['top_candidate'].candidate_id}",
+            "ambiguity_note": window_loc["ambiguity_note"],
+            "recommended_next_measurement": window_loc["recommended_next_measurement"],
+        },
+        "cumulative": {
+            "transformer_kwh": round(cum_transformer, 2),
+            "household_kwh": round(cum_household, 2),
+            "technical_loss_kwh": round(cum_tech_loss, 2),
+            "unexplained_kwh": round(cum_unexplained, 2),
+            "unexplained_pct": round((cum_unexplained / max(0.01, cum_transformer)) * 100.0, 2),
+        },
+        "matching_alert_id": matching_alert.id if matching_alert else None,
+    }
+
+
 @app.get("/api/feeders/T1/summary", response_model=FeederSummary)
 def get_feeder_summary():
     """Display live calculated feeder-level KPIs and section summaries."""
