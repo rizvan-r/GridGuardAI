@@ -6,7 +6,9 @@ import {
   Filter, 
   Sliders, 
   HelpCircle,
-  Database
+  Database,
+  LayoutList,
+  Table as TableIcon
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -22,6 +24,7 @@ import {
 export default function AnomalyDetectionPage({ readings }) {
   const [filterSeverity, setFilterSeverity] = useState('ALL');
   const [searchInterval, setSearchInterval] = useState('');
+  const [mobileLedgerView, setMobileLedgerView] = useState('cards');
 
   if (!readings) {
     return <div className="page-container"><p>Loading telemetry stream...</p></div>;
@@ -129,35 +132,110 @@ export default function AnomalyDetectionPage({ readings }) {
         </div>
       </div>
 
-      {/* Interval by Interval Telemetry Table */}
+      {/* Interval by Interval Telemetry Table & Mobile Cards */}
       <div className="card">
-        <div className="card-header">
+        <div className="card-header" style={{ flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h2 className="card-title">Interval Telemetry & Evidence Ledger</h2>
             <p className="card-description">Full 96-interval telemetry with raw measurements, technical losses, and data-quality indicators</p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Mobile View Toggle */}
+            <div className="mobile-alerts-toggle">
+              <button 
+                className={`mobile-tab-btn ${mobileLedgerView === 'cards' ? 'active' : ''}`}
+                onClick={() => setMobileLedgerView('cards')}
+                style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                title="Card View"
+              >
+                <LayoutList size={13} /> Cards
+              </button>
+              <button 
+                className={`mobile-tab-btn ${mobileLedgerView === 'table' ? 'active' : ''}`}
+                onClick={() => setMobileLedgerView('table')}
+                style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                title="Table View"
+              >
+                <TableIcon size={13} /> Table
+              </button>
+            </div>
+
             <input 
               type="text" 
-              placeholder="Search time (e.g. 19:30)..." 
+              placeholder="Search time (19:30)..." 
               className="control-input"
               value={searchInterval}
               onChange={(e) => setSearchInterval(e.target.value)}
-              style={{ width: '180px' }}
+              style={{ width: '140px', fontSize: '0.78rem' }}
             />
             <select 
               className="control-select"
               value={filterSeverity}
               onChange={(e) => setFilterSeverity(e.target.value)}
+              style={{ fontSize: '0.78rem' }}
             >
-              <option value="ALL">Show All 96 Intervals</option>
-              <option value="ANOMALIES">Only Flagged Anomalies</option>
+              <option value="ALL">All Intervals (96)</option>
+              <option value="ANOMALIES">Flagged Only</option>
             </select>
           </div>
         </div>
 
-        <div className="table-container" style={{ maxHeight: '420px', overflowY: 'auto' }}>
+        {/* Mobile Interval Cards View */}
+        <div className={`mobile-interval-cards-list ${mobileLedgerView === 'table' ? 'mobile-hidden' : ''}`}>
+          {filteredReadings.map((r) => (
+            <div 
+              key={r.interval_index} 
+              className={`mobile-interval-card ${r.is_anomaly ? 'anomaly-border' : ''}`}
+            >
+              <div className="mobile-interval-card-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{r.time_str}</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    (Int #{r.interval_index})
+                  </span>
+                </div>
+                {r.is_anomaly ? (
+                  <span className="badge badge-critical">FLAGGED</span>
+                ) : (
+                  <span className="badge badge-normal" style={{ fontSize: '0.7rem' }}>Nominal</span>
+                )}
+              </div>
+
+              <div className="mobile-alert-metrics-strip" style={{ marginTop: '8px', marginBottom: '8px' }}>
+                <div className="mobile-alert-metric">
+                  <span className="metric-label">Unexplained</span>
+                  <span className={`metric-val ${r.is_anomaly ? 'critical' : ''}`}>{r.unexplained_kwh} kWh</span>
+                </div>
+                <div className="mobile-alert-metric">
+                  <span className="metric-label">Gap %</span>
+                  <span className={`metric-val ${r.is_anomaly ? 'critical' : ''}`}>{r.unexplained_pct}%</span>
+                </div>
+                <div className="mobile-alert-metric">
+                  <span className="metric-label">Z-Score</span>
+                  <span className="metric-val" style={{ 
+                    color: r.anomaly_score >= 3.2 ? '#dc2626' : (r.anomaly_score >= 2.0 ? '#d97706' : 'inherit') 
+                  }}>
+                    {r.anomaly_score}&sigma;
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                <span>Supplied: {r.transformer_kwh}k • Meters: {r.household_total_kwh}k</span>
+                <span className={`badge ${
+                  r.data_quality === 'good' ? 'badge-normal' :
+                  r.data_quality === 'missing_data' ? 'badge-critical' : 'badge-telemetry'
+                }`} style={{ fontSize: '0.68rem', padding: '1px 5px' }}>
+                  {r.data_quality}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop / Full Table View */}
+        <div className={`table-container ${mobileLedgerView === 'cards' ? 'mobile-hidden-table' : ''}`} style={{ maxHeight: '420px', overflowY: 'auto' }}>
           <table className="data-table">
             <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
               <tr>

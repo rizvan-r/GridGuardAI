@@ -74,7 +74,7 @@ html, body {
 }
 
 /* ==========================================================================
-   DESKTOP VIEW: Sidebar Stays Completely Still While Main Content Scrolls
+   DESKTOP VIEW: Sidebar Stays Still While Main Content Scrolls
    ========================================================================== */
 @media (min-width: 769px) {
   html, body {
@@ -116,13 +116,34 @@ html, body {
     z-index: 30;
   }
 
-  /* Bottom nav is completely hidden on desktop */
-  .bottom-nav {
+  /* Mobile-only elements are completely hidden on desktop */
+  .bottom-nav,
+  .mobile-menu-btn,
+  .mobile-chart-tabs,
+  .mobile-view-toggle,
+  .mobile-section-cards-container,
+  .investigation-mobile-tabs {
     display: none !important;
   }
 
-  .mobile-menu-btn {
-    display: none !important;
+  .desktop-svg-network-card {
+    display: block !important;
+  }
+
+  .chart-card-item,
+  .mobile-hidden,
+  .mobile-hidden-chart-3,
+  .mobile-hidden-svg,
+  .mobile-hidden-docket,
+  .mobile-hidden-dossier,
+  .mobile-hidden-ai {
+    display: block !important;
+  }
+
+  .charts-responsive-wrapper {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
   }
 }
 
@@ -296,6 +317,28 @@ html, body {
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.header-top-row {
+  display: contents;
+}
+
+.mobile-header-quick-actions {
+  display: none;
+}
+
+.header-control-group,
+.header-control-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-alerts-toggle,
+.mobile-alerts-cards-list,
+.mobile-interval-cards-list,
+.mobile-planner-tabs {
+  display: none;
 }
 
 .header-controls {
@@ -671,7 +714,7 @@ html, body {
 }
 
 /* ==========================================================================
-   MOBILE RESPONSIVENESS & ALIGNMENT (<= 768px)
+   MOBILE RESPONSIVENESS & SIMPLIFICATION (<= 768px)
    ========================================================================== */
 @media (max-width: 1024px) {
   .grid-2, .grid-3 {
@@ -690,43 +733,308 @@ html, body {
     display: flex !important;
   }
 
-  /* Adjust Page Container for Mobile: clean margin and bottom spacing for nav bar */
+  /* Mobile Tabs Switchers (Clean & Simple) */
+  .mobile-chart-tabs,
+  .mobile-view-toggle,
+  .investigation-mobile-tabs {
+    display: flex !important;
+    gap: 6px;
+    background-color: var(--bg-subtle);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    margin-bottom: 14px;
+    overflow-x: auto;
+  }
+
+  .mobile-tab-btn {
+    flex: 1;
+    padding: 7px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    min-height: 34px;
+  }
+
+  .mobile-tab-btn.active {
+    background-color: var(--bg-surface);
+    color: var(--accent-primary);
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .charts-responsive-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Classes to cleanly hide inactive tabs on mobile */
+  .mobile-hidden,
+  .mobile-hidden-chart-3,
+  .mobile-hidden-svg,
+  .mobile-hidden-docket,
+  .mobile-hidden-dossier,
+  .mobile-hidden-ai {
+    display: none !important;
+  }
+
+  .desktop-legend {
+    display: none !important;
+  }
+
+  .mobile-section-cards-container {
+    display: block !important;
+  }
+
+  /* Adjust Page Container for Mobile */
   .page-container {
     padding: 14px 12px 80px 12px !important;
     max-width: 100% !important;
     box-sizing: border-box;
   }
 
-  /* Header on Mobile: clean aligned 2-row layout */
+  /* Header on Mobile: compact top bar with collapsible parameter tray */
   .top-header {
-    padding: 10px 14px !important;
+    padding: 8px 12px !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 10px !important;
+    gap: 6px !important;
   }
 
-  .header-left {
-    width: 100% !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-  }
-
-  .page-title {
-    font-size: 1.05rem !important;
-  }
-
-  .header-controls {
-    width: 100% !important;
+  .header-top-row {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    flex-wrap: wrap !important;
+    width: 100% !important;
+  }
+
+  .header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex: 1 !important;
+    min-width: 0 !important;
+  }
+
+  .page-title {
+    font-size: 0.95rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .header-left .badge {
+    padding: 2px 6px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .badge-text {
+    display: inline-block;
+  }
+
+  .mobile-header-quick-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mobile-quick-run-btn {
+    padding: 5px 10px !important;
+    font-size: 0.75rem !important;
+    min-height: 30px !important;
+    border-radius: var(--radius-sm) !important;
+  }
+
+  .mobile-params-toggle-btn {
+    padding: 5px 8px !important;
+    font-size: 0.75rem !important;
+    min-height: 30px !important;
+    border-radius: var(--radius-sm) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+  }
+
+  .mobile-params-toggle-btn.active {
+    background-color: var(--accent-primary-light) !important;
+    color: var(--accent-primary) !important;
+    border-color: var(--accent-primary) !important;
+  }
+
+  /* Header controls tray: hidden by default on mobile, expands on toggle */
+  .header-controls {
+    display: none !important;
+    width: 100% !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid var(--border-subtle) !important;
+  }
+
+  .header-controls.mobile-expanded {
+    display: flex !important;
+  }
+
+  .header-control-group {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
     gap: 8px !important;
   }
 
-  .header-controls .control-select {
-    flex: 1 1 180px !important;
-    width: auto !important;
+  .header-control-group.scenario-group .control-select {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    font-size: 0.78rem !important;
+  }
+
+  .header-control-buttons {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .header-control-buttons button {
+    flex: 1 !important;
+  }
+
+  .desktop-run-btn {
+    display: none !important;
+  }
+
+  /* Mobile Alert Cards View */
+  .mobile-alerts-toggle {
+    display: flex !important;
+    gap: 4px;
+    background-color: var(--bg-subtle);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  .mobile-alerts-cards-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .mobile-alert-card {
+    padding: 12px;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-alert-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mobile-alert-metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    background-color: var(--bg-subtle);
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    text-align: center;
+  }
+
+  .mobile-alert-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mobile-alert-metric .metric-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .mobile-alert-metric .metric-val {
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+
+  .mobile-alert-metric .metric-val.critical {
+    color: var(--status-critical);
+  }
+
+  .mobile-alert-investigate-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    padding: 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+  }
+
+  .mobile-hidden-table {
+    display: none !important;
+  }
+
+  /* Mobile Interval Cards View (Anomaly Detection) */
+  .mobile-interval-cards-list {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 440px;
+    overflow-y: auto;
+    margin-top: 8px;
+    padding-right: 2px;
+  }
+
+  .mobile-interval-card {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+  }
+
+  .mobile-interval-card.anomaly-border {
+    border-color: #fca5a5;
+    background-color: #fffaf0;
+  }
+
+  .mobile-interval-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* Mobile Measurement Planner Tabs */
+  .mobile-planner-tabs {
+    display: flex !important;
+  }
+
+  .mobile-hidden-planner-sensors {
+    display: none !important;
+  }
+
+  .mobile-hidden-planner-rec {
+    display: none !important;
   }
 
   /* Off-canvas mobile sidebar drawer */

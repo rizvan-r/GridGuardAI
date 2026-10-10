@@ -7,13 +7,19 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   Clock, 
-  Search
+  Search,
+  ChevronDown,
+  ChevronUp,
+  LayoutGrid,
+  GitBranch
 } from 'lucide-react';
 
 export default function NetworkExplorerPage({ networkTree, readings, onSelectNode }) {
   const [selectedSection, setSelectedSection] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [sliderInterval, setSliderInterval] = useState(80); // Default around 20:00 (8:00 PM)
+  const [mobileViewMode, setMobileViewMode] = useState('cards'); // 'cards' or 'svg'
+  const [expandedSection, setExpandedSection] = useState(null);
 
   if (!networkTree) {
     return <div className="page-container"><p>Loading network topology...</p></div>;
@@ -25,6 +31,7 @@ export default function NetworkExplorerPage({ networkTree, readings, onSelectNod
   // Filter sections
   const filteredSections = sections.filter((s) => {
     if (selectedSection !== 'ALL' && s.section_id !== selectedSection) return false;
+    if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
     return true;
   });
 
@@ -39,9 +46,10 @@ export default function NetworkExplorerPage({ networkTree, readings, onSelectNod
     <div className="page-container">
       {/* Top Filter & Time Interval Slider Controls */}
       <div className="card" style={{ marginBottom: '16px', padding: '14px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '14px' }}>
+          
           {/* Section and Status filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Filter size={14} color="var(--text-muted)" />
               <label style={{ fontSize: '0.8rem', fontWeight: 500 }}>Section:</label>
@@ -66,18 +74,18 @@ export default function NetworkExplorerPage({ networkTree, readings, onSelectNod
               >
                 <option value="ALL">All States</option>
                 <option value="NORMAL">Normal</option>
-                <option value="SUSPICIOUS">Suspicious Residual</option>
-                <option value="FAULT">Meter Fault</option>
+                <option value="SUSPICIOUS">Suspicious</option>
+                <option value="FAULT">Fault</option>
               </select>
             </div>
           </div>
 
           {/* Time range slider (00:00 to 23:45) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px', flex: '1 1 220px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: '220px', flex: '1 1 220px' }}>
             <Clock size={16} color="var(--accent-primary)" />
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '2px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Interval Telemetry Time:</span>
+                <span style={{ color: 'var(--text-muted)' }}>Interval Time:</span>
                 <strong>{currentIntervalReading ? currentIntervalReading.time_str : '20:00'}</strong>
               </div>
               <input 
@@ -91,23 +99,181 @@ export default function NetworkExplorerPage({ networkTree, readings, onSelectNod
             </div>
           </div>
 
-          {/* Legend */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem' }}>
+          {/* Mobile View Mode Switcher (Visible on Mobile only) */}
+          <div className="mobile-view-toggle">
+            <button 
+              className={`mobile-tab-btn ${mobileViewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setMobileViewMode('cards')}
+            >
+              <LayoutGrid size={14} /> Clean Cards
+            </button>
+            <button 
+              className={`mobile-tab-btn ${mobileViewMode === 'svg' ? 'active' : ''}`}
+              onClick={() => setMobileViewMode('svg')}
+            >
+              <GitBranch size={14} /> Full Map
+            </button>
+          </div>
+
+          {/* Desktop Legend */}
+          <div className="desktop-legend" style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.75rem' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#10b981' }} /> Normal
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#ef4444' }} /> Suspicious / Loss
+              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#ef4444' }} /> Suspicious
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#8b5cf6' }} /> Meter Fault
+              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#8b5cf6' }} /> Fault
             </span>
           </div>
         </div>
       </div>
 
-      {/* Network Map Visual Canvas */}
-      <div className="card" style={{ padding: '24px', overflowX: 'auto' }}>
+      {/* MOBILE-ONLY SECTION CARDS VIEW (Clean, Simple, Touch-Friendly) */}
+      <div className={`mobile-section-cards-container ${mobileViewMode === 'svg' ? 'mobile-hidden' : ''}`}>
+        {/* Transformer Bulk Card */}
+        <div 
+          onClick={() => onSelectNode('NODE_T1')}
+          className="card"
+          style={{
+            padding: '14px',
+            border: '2px solid #0284c7',
+            cursor: 'pointer',
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Zap size={20} color="#0284c7" />
+            <div>
+              <strong style={{ fontSize: '0.9rem' }}>{networkTree.transformer.label}</strong>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Feeder Meter MTR_T1 • Total: {networkTree.transformer.total_supplied_kwh} kWh
+              </div>
+            </div>
+          </div>
+          <span className="badge badge-normal">Bulk Meter</span>
+        </div>
+
+        {/* 6 Section Accordion Cards */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {filteredSections.map((sec) => {
+            const isSuspicious = sec.status === 'SUSPICIOUS';
+            const isExpanded = expandedSection === sec.id;
+
+            return (
+              <div 
+                key={sec.id}
+                className="card"
+                style={{
+                  padding: '14px',
+                  marginBottom: 0,
+                  border: `1.5px solid ${getNodeColor(sec.status)}`,
+                  backgroundColor: isSuspicious ? '#fff5f5' : '#ffffff'
+                }}
+              >
+                {/* Header Row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div 
+                    onClick={() => onSelectNode(sec.id)}
+                    style={{ cursor: 'pointer', flex: 1 }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ fontSize: '0.92rem' }}>{sec.name}</strong>
+                      <span className={`badge ${
+                        sec.status === 'SUSPICIOUS' ? 'badge-critical' : 'badge-normal'
+                      }`}>
+                        {sec.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      In: {sec.incoming_kwh}k • Household: {sec.household_total_kwh}k • Residual: 
+                      <strong style={{ color: sec.residual_kwh > 0.5 ? '#ef4444' : 'inherit', marginLeft: '4px' }}>
+                        {sec.residual_kwh} kWh
+                      </strong>
+                    </div>
+                  </div>
+
+                  <button 
+                    className="btn-secondary"
+                    style={{ padding: '4px 8px', fontSize: '0.72rem', minHeight: '30px' }}
+                    onClick={() => setExpandedSection(isExpanded ? null : sec.id)}
+                  >
+                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    <span>{sec.households.length} Nodes</span>
+                  </button>
+                </div>
+
+                {/* Candidate Branch Tap (Level 3) */}
+                <div 
+                  onClick={() => onSelectNode(sec.candidate.id)}
+                  style={{
+                    marginTop: '10px',
+                    padding: '8px 10px',
+                    backgroundColor: sec.candidate.residual_kwh > 1.0 ? '#fee2e2' : 'var(--bg-subtle)',
+                    border: `1px dashed ${sec.candidate.residual_kwh > 1.0 ? '#dc2626' : '#cbd5e1'}`,
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  <div>
+                    <span style={{ fontWeight: 600 }}>Branch {sec.candidate.id} Tap Line</span>
+                    <span style={{ color: 'var(--text-muted)', marginLeft: '6px' }}>({sec.candidate.residual_kwh} kWh gap)</span>
+                  </div>
+                  {sec.candidate.rank === 1 ? (
+                    <span className="badge badge-critical" style={{ fontSize: '0.65rem' }}>Rank #1 Suspect</span>
+                  ) : (
+                    <span className="badge badge-normal" style={{ fontSize: '0.65rem' }}>Rank #{sec.candidate.rank}</span>
+                  )}
+                </div>
+
+                {/* Expandable 10 Households Grid */}
+                {isExpanded && (
+                  <div style={{ 
+                    marginTop: '12px',
+                    paddingTop: '10px',
+                    borderTop: '1px solid var(--border-subtle)',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(5, 1fr)',
+                    gap: '6px'
+                  }}>
+                    {sec.households.map((hh) => (
+                      <div 
+                        key={hh.id}
+                        onClick={() => onSelectNode(hh.id)}
+                        style={{
+                          padding: '6px 4px',
+                          textAlign: 'center',
+                          backgroundColor: hh.is_faulty ? '#f3e8ff' : '#ffffff',
+                          border: `1px solid ${hh.is_faulty ? '#a855f7' : '#cbd5e1'}`,
+                          borderRadius: '4px',
+                          fontSize: '0.68rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, color: hh.is_faulty ? '#7e22ce' : 'inherit' }}>
+                          {hh.id}
+                        </div>
+                        <div style={{ color: 'var(--text-muted)' }}>{hh.total_kwh}k</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SVG TREE DIAGRAM (Permanent on Desktop, Switchable on Mobile) */}
+      <div className={`card desktop-svg-network-card ${mobileViewMode === 'cards' ? 'mobile-hidden-svg' : ''}`} style={{ padding: '24px', overflowX: 'auto' }}>
         <div style={{ minWidth: '980px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           
           {/* Transformer Node at Top */}
@@ -155,7 +321,6 @@ export default function NetworkExplorerPage({ networkTree, readings, onSelectNod
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: '16px' }}>
             {filteredSections.map((sec) => {
               const isSectionSuspicious = sec.status === 'SUSPICIOUS';
-              const hasFault = sec.households.some((h) => h.is_faulty);
 
               return (
                 <div 

@@ -7,10 +7,13 @@ import {
   MessageSquare, 
   History, 
   Send, 
-  Sparkles,
+  Sparkles, 
   HelpCircle,
   Clock,
-  ArrowRight
+  ArrowRight,
+  ListFilter,
+  FileText,
+  Bot
 } from 'lucide-react';
 import { updateAlertStatus, fetchAlertAudits, explainAlert } from '../api';
 
@@ -22,12 +25,14 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
   const [aiExplanation, setAiExplanation] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [mobileTab, setMobileTab] = useState('dossier'); // 'list', 'dossier', 'ai'
 
   const activeAlert = (alerts || []).find((a) => a.id === activeAlertId) || (alerts && alerts[0]) || null;
 
   useEffect(() => {
     if (selectedAlertId) {
       setActiveAlertId(selectedAlertId);
+      setMobileTab('dossier');
     } else if (alerts && alerts.length > 0 && !activeAlertId) {
       setActiveAlertId(alerts[0].id);
     }
@@ -100,10 +105,32 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
 
   return (
     <div className="page-container">
-      <div className="grid-3" style={{ gridTemplateColumns: '320px 1fr' }}>
+      {/* Mobile Tab Switcher: Incident List | Case Dossier | AI Explainer */}
+      <div className="investigation-mobile-tabs">
+        <button 
+          className={`mobile-tab-btn ${mobileTab === 'list' ? 'active' : ''}`}
+          onClick={() => setMobileTab('list')}
+        >
+          <ListFilter size={14} /> Incidents ({alerts.length})
+        </button>
+        <button 
+          className={`mobile-tab-btn ${mobileTab === 'dossier' ? 'active' : ''}`}
+          onClick={() => setMobileTab('dossier')}
+        >
+          <FileText size={14} /> Case Dossier
+        </button>
+        <button 
+          className={`mobile-tab-btn ${mobileTab === 'ai' ? 'active' : ''}`}
+          onClick={() => setMobileTab('ai')}
+        >
+          <Bot size={14} /> AI Explainer
+        </button>
+      </div>
+
+      <div className="grid-3 investigation-grid-layout" style={{ gridTemplateColumns: '320px 1fr' }}>
         
         {/* Left Column: Alert Docket Selector */}
-        <div className="card" style={{ padding: '16px' }}>
+        <div className={`card docket-card ${mobileTab !== 'list' ? 'mobile-hidden-docket' : ''}`} style={{ padding: '16px' }}>
           <div className="card-header" style={{ marginBottom: '12px' }}>
             <h2 className="card-title">Investigation Docket</h2>
             <span className="badge badge-critical">{alerts.length} Incidents</span>
@@ -115,7 +142,10 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
               return (
                 <div
                   key={alt.id}
-                  onClick={() => setActiveAlertId(alt.id)}
+                  onClick={() => {
+                    setActiveAlertId(alt.id);
+                    setMobileTab('dossier');
+                  }}
                   style={{
                     padding: '12px',
                     borderRadius: 'var(--radius-md)',
@@ -152,15 +182,15 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
 
         {/* Right Column: Case File & Evidence Dossier */}
         {activeAlert && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div className="dossier-column" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
             {/* Case File Overview Card */}
-            <div className="card">
+            <div className={`card ${mobileTab === 'ai' ? 'mobile-hidden-dossier' : (mobileTab === 'list' ? 'mobile-hidden' : '')}`}>
               <div className="card-header">
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h2 className="card-title" style={{ fontSize: '1.1rem' }}>
-                      Incident Dossier: {activeAlert.id}
+                    <h2 className="card-title" style={{ fontSize: '1.05rem' }}>
+                      Incident: {activeAlert.id}
                     </h2>
                     <span className={`badge ${
                       activeAlert.status === 'Open' ? 'badge-critical' : 'badge-telemetry'
@@ -169,7 +199,7 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
                     </span>
                   </div>
                   <p className="card-description">
-                    Detected at {activeAlert.time_str} UTC • Interval #{activeAlert.interval_index} • Confidence: {activeAlert.confidence_level}
+                    {activeAlert.time_str} UTC • Interval #{activeAlert.interval_index} • Confidence: {activeAlert.confidence_level}
                   </p>
                 </div>
               </div>
@@ -177,19 +207,19 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
               {/* Energy Decomposition KPI strip */}
               <div className="incident-metrics-grid">
                 <div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Raw Discrepancy</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Raw Gap</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                     {activeAlert.raw_discrepancy_kwh} kWh
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Technical Loss</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Tech Loss</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                     {activeAlert.technical_loss_kwh} kWh
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Unexplained Discrepancy</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Unexplained</div>
                   <div style={{ fontSize: '1.1rem', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--status-critical)' }}>
                     {activeAlert.unexplained_kwh} kWh ({activeAlert.unexplained_pct}%)
                   </div>
@@ -204,21 +234,21 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
 
               {/* Recommended Field Verification */}
               <div style={{ 
-                padding: '12px 16px', 
+                padding: '10px 14px', 
                 backgroundColor: '#eff6ff', 
                 border: '1px solid #bfdbfe',
                 borderRadius: '6px',
                 marginBottom: '16px',
-                fontSize: '0.82rem'
+                fontSize: '0.8rem'
               }}>
-                <strong style={{ color: '#1e40af' }}>Recommended Action: </strong>
+                <strong style={{ color: '#1e40af' }}>Action: </strong>
                 <span>{activeAlert.recommended_action}</span>
               </div>
 
               {/* Ranked Candidate Locations Table */}
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '8px' }}>
-                  Ranked Candidate Locations (Level 3 Hierarchical Decomposition)
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '0.88rem', fontWeight: 600, marginBottom: '8px' }}>
+                  Ranked Candidates (Level 3 Localization)
                 </h3>
                 <div className="table-container">
                   <table className="data-table">
@@ -230,21 +260,17 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
                         <th>Residual Gap</th>
                         <th>Persistence</th>
                         <th>Confidence</th>
-                        <th>Supporting Evidence</th>
+                        <th>Evidence</th>
                       </tr>
                     </thead>
                     <tbody>
                       {activeAlert.ranked_candidates.map((cand) => (
                         <tr key={cand.candidate_id} style={{ backgroundColor: cand.rank === 1 ? '#fef2f2' : 'transparent' }}>
-                          <td>
-                            <strong>#{cand.rank}</strong>
-                          </td>
-                          <td>
-                            <strong>{cand.candidate_id}</strong> ({cand.label.split('(')[1]?.replace(')', '') || cand.label})
-                          </td>
-                          <td>Section {cand.section_id}</td>
+                          <td><strong>#{cand.rank}</strong></td>
+                          <td><strong>{cand.candidate_id}</strong></td>
+                          <td>Sec {cand.section_id}</td>
                           <td style={{ fontFamily: 'var(--font-mono)' }}>{cand.measured_residual_kwh} kWh</td>
-                          <td>{cand.persistence_intervals} intervals</td>
+                          <td>{cand.persistence_intervals} int</td>
                           <td>
                             <span className={`badge ${
                               cand.confidence === 'HIGH' ? 'badge-critical' :
@@ -253,7 +279,7 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
                               {cand.confidence}
                             </span>
                           </td>
-                          <td style={{ fontSize: '0.75rem' }}>{cand.supporting_evidence}</td>
+                          <td style={{ fontSize: '0.72rem' }}>{cand.supporting_evidence}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -262,32 +288,33 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
               </div>
 
               {/* Status Update Actions & Audit Trail */}
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
-                <h3 style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '10px' }}>
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+                <h3 style={{ fontSize: '0.88rem', fontWeight: 600, marginBottom: '8px' }}>
                   Update Investigation Status
                 </h3>
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
                   {['Open', 'Under Review', 'Verified', 'False Alarm', 'Resolved'].map((st) => (
                     <button
                       key={st}
                       className={activeAlert.status === st ? 'btn-primary' : 'btn-secondary'}
                       style={{ 
-                        fontSize: '0.78rem',
+                        fontSize: '0.75rem',
+                        padding: '6px 10px',
                         backgroundColor: activeAlert.status === st ? '#0284c7' : 'inherit'
                       }}
                       disabled={statusUpdating || activeAlert.status === st}
                       onClick={() => handleStatusChange(st)}
                     >
-                      Mark as {st}
+                      {st}
                     </button>
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
                   <input
                     type="text"
-                    placeholder="Add operator inspection notes for audit log..."
+                    placeholder="Add operator notes for audit log..."
                     className="control-input"
                     value={operatorNotes}
                     onChange={(e) => setOperatorNotes(e.target.value)}
@@ -297,6 +324,7 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
                     className="btn-secondary" 
                     onClick={() => handleStatusChange(activeAlert.status)}
                     disabled={statusUpdating || !operatorNotes.trim()}
+                    style={{ whiteSpace: 'nowrap' }}
                   >
                     Log Note
                   </button>
@@ -305,18 +333,18 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
                 {/* Audit Trail Timeline */}
                 {audits && audits.length > 0 && (
                   <div>
-                    <h4 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <History size={14} /> Audit Trail
+                    <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <History size={13} /> Audit Trail
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {audits.map((rec) => (
                         <div 
                           key={rec.id}
                           style={{
-                            padding: '8px 12px',
+                            padding: '6px 10px',
                             backgroundColor: 'var(--bg-subtle)',
                             borderRadius: '6px',
-                            fontSize: '0.75rem',
+                            fontSize: '0.72rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between'
@@ -337,31 +365,31 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
             </div>
 
             {/* Gemini AI Loss Explanation Assistant */}
-            <div className="card" style={{ borderColor: 'var(--accent-primary)' }}>
+            <div className={`card ${mobileTab === 'dossier' ? 'mobile-hidden-ai' : (mobileTab === 'list' ? 'mobile-hidden' : '')}`} style={{ borderColor: 'var(--accent-primary)' }}>
               <div className="card-header">
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Sparkles size={18} color="#0284c7" />
-                    <h2 className="card-title">GridGuard AI Loss Explainer</h2>
+                    <h2 className="card-title">GridGuard AI Explainer</h2>
                     {aiExplanation && (
                       <span className="badge badge-telemetry">
-                        {aiExplanation.mode === 'GEMINI_LIVE' ? 'Gemini 2.5 Flash Live' : 'Deterministic Demo Mode'}
+                        {aiExplanation.mode === 'GEMINI_LIVE' ? 'Gemini Live' : 'Demo Mode'}
                       </span>
                     )}
                   </div>
                   <p className="card-description">
-                    Audited engineering explanations adhering to presumption of consumer innocence
+                    Audited engineering explanations adhering to ethical distribution standards
                   </p>
                 </div>
               </div>
 
               {/* Preset 1-Click Questions */}
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
                 {presetQuestions.map((q, idx) => (
                   <button
                     key={idx}
                     className="btn-secondary"
-                    style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                    style={{ fontSize: '0.72rem', padding: '4px 8px' }}
                     onClick={() => handleAskAI(q)}
                     disabled={aiLoading}
                   >
@@ -371,10 +399,10 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
               </div>
 
               {/* Custom Ask Bar */}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
                 <input
                   type="text"
-                  placeholder="Ask a technical loss question (e.g., 'Could high technical resistance explain this?')..."
+                  placeholder="Ask a technical loss question..."
                   className="control-input"
                   value={aiQuestion}
                   onChange={(e) => setAiQuestion(e.target.value)}
@@ -387,7 +415,7 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
                   disabled={aiLoading || !aiQuestion.trim()}
                 >
                   <Send size={14} />
-                  {aiLoading ? 'Analyzing...' : 'Ask AI'}
+                  <span>{aiLoading ? '...' : 'Ask'}</span>
                 </button>
               </div>
 
@@ -397,16 +425,16 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
                   backgroundColor: '#f8fafc', 
                   border: '1px solid var(--border-subtle)',
                   borderRadius: '8px',
-                  padding: '16px'
+                  padding: '14px'
                 }}>
-                  <p style={{ fontSize: '0.85rem', lineHeight: 1.6, color: 'var(--text-primary)', marginBottom: '14px' }}>
+                  <p style={{ fontSize: '0.82rem', lineHeight: 1.6, color: 'var(--text-primary)', marginBottom: '12px' }}>
                     {aiExplanation.explanation}
                   </p>
 
                   {aiExplanation.key_findings && aiExplanation.key_findings.length > 0 && (
-                    <div style={{ marginBottom: '12px' }}>
-                      <strong style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Calculated Key Findings:</strong>
-                      <ul style={{ paddingLeft: '18px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ marginBottom: '10px' }}>
+                      <strong style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Key Findings:</strong>
+                      <ul style={{ paddingLeft: '16px', marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                         {aiExplanation.key_findings.map((f, i) => (
                           <li key={i}>{f}</li>
                         ))}
@@ -415,16 +443,16 @@ export default function InvestigationCenterPage({ alerts, selectedAlertId, onAle
                   )}
 
                   <div style={{ 
-                    padding: '8px 12px', 
+                    padding: '8px 10px', 
                     backgroundColor: '#fffbeb', 
                     borderRadius: '6px', 
-                    fontSize: '0.72rem',
+                    fontSize: '0.7rem',
                     color: '#92400e',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px'
                   }}>
-                    <HelpCircle size={14} />
+                    <HelpCircle size={13} />
                     <span>{aiExplanation.safeguard_note}</span>
                   </div>
                 </div>

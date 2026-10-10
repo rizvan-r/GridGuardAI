@@ -16,6 +16,7 @@ export default function MeasurementPlannerPage() {
   const [sensors, setSensors] = useState([]);
   const [recommendation, setRecommendation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mobilePlannerTab, setMobilePlannerTab] = useState('recommendation');
 
   const loadPlannerData = async () => {
     try {
@@ -99,10 +100,26 @@ export default function MeasurementPlannerPage() {
         </div>
       </div>
 
+      {/* Mobile Tab Switcher: Optimal Strategy vs Sensor Toggles */}
+      <div className="mobile-view-toggle mobile-planner-tabs">
+        <button 
+          className={`mobile-tab-btn ${mobilePlannerTab === 'recommendation' ? 'active' : ''}`}
+          onClick={() => setMobilePlannerTab('recommendation')}
+        >
+          <Cpu size={14} /> Optimal Strategy
+        </button>
+        <button 
+          className={`mobile-tab-btn ${mobilePlannerTab === 'sensors' ? 'active' : ''}`}
+          onClick={() => setMobilePlannerTab('sensors')}
+        >
+          <SlidersHorizontal size={14} /> Sensors ({sensors.filter((s) => s.is_active).length}/{sensors.length})
+        </button>
+      </div>
+
       {/* Main Grid: Sensors on Left, Recommendation & Ambiguity on Right */}
       <div className="grid-2">
         {/* Available Measurement Points (Interactive Toggles) */}
-        <div className="card">
+        <div className={`card ${mobilePlannerTab !== 'sensors' ? 'mobile-hidden-planner-sensors' : ''}`}>
           <div className="card-header">
             <div>
               <h2 className="card-title">Simulate Sensor Availability</h2>
@@ -154,7 +171,10 @@ export default function MeasurementPlannerPage() {
         </div>
 
         {/* Observability & Optimal Next Measurement */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div 
+          className={mobilePlannerTab !== 'recommendation' ? 'mobile-hidden-planner-rec' : ''} 
+          style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+        >
           {/* Optimal Recommendation Card */}
           <div className="card" style={{ borderColor: 'var(--accent-primary)' }}>
             <div className="card-header">
