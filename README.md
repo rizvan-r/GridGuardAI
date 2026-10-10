@@ -44,6 +44,7 @@ gridguard-ai/
 │   │   │   └── NodeDrawer.jsx       # Interactive slide-over / bottom-sheet telemetry inspector
 │   │   ├── pages/
 │   │   │   ├── OverviewPage.jsx     # Executive KPI cards, 24h & 7-10 PM surge charts, mobile alert cards
+│   │   │   ├── LiveSimulationPage.jsx# Interactive real-time playback studio with interval scrubber
 │   │   │   ├── NetworkExplorerPage.jsx # SVG interactive network tree & mobile section card view
 │   │   │   ├── AnomalyDetectionPage.jsx# Z-score trajectory & 96-interval telemetry cards/ledger
 │   │   │   ├── MeasurementPlannerPage.jsx# Observability & inspection strategy simulator
@@ -172,9 +173,11 @@ python tests/verify_e2e.py
 ## 8. Demo Walkthrough
 
 1. **Executive Overview**: Observe the 6 live calculated KPI cards (Transformer Supplied, Household Metered, Technical Losses, Unexplained Gap in kWh and %, Active Alerts). Inspect the 24h Line Chart and the 7 PM–10 PM surge window.
-2. **Network Explorer**: Explore the SVG hierarchy of Transformer T1, 6 Sections, 60 Households, and 6 Candidate taps. Click on **Section C** or **Branch U-03** to slide out the detailed telemetry drawer.
-3. **Anomaly Detection**: View the statistical Z-score trajectory with Warning ($2.0\sigma$) and Critical ($3.2\sigma$) threshold lines, and filter the 96-interval telemetry cards or ledger.
-4. **Measurement Planner**: Toggle simulated clamp sensors and see how hierarchical placement reduces inspection steps from **60 steps down to 2–4 steps (93–96% reduction)**.
-5. **Investigation Center**: Review the incident dossier for **ALT-2026-001**, check the ranked candidate table (confirming U-03 rank #1), test 1-click AI loss explanation questions, and update the status to **"Under Review"** with audit trail logging.
-6. **Settings**: View backend service health, database mode (In-Memory Local Mode or Supabase), AI mode (Deterministic Demo or Gemini Live API), and ethical safeguards.
+2. **Live Simulation Studio**: Scrub through all 96 intervals in real time with play/pause, adjustable speed (1x to 10x), and live hierarchical tree updates as the evening surge unfolds.
+3. **Network Explorer**: Explore the SVG hierarchy of Transformer T1, 6 Sections, 60 Households, and 6 Candidate taps. Click on **Section C** or **Branch U-03** to slide out the detailed telemetry drawer.
+4. **Anomaly Detection**: View the statistical Z-score trajectory with Warning ($2.0\sigma$) and Critical ($3.2\sigma$) threshold lines, and filter the 96-interval telemetry cards or ledger.
+5. **Measurement Planner**: Toggle simulated clamp sensors and see how hierarchical placement reduces inspection steps from **60 steps down to 2–4 steps (93–96% reduction)**.
+6. **Investigation Center**: Review the incident dossier for **ALT-2026-001**, check the ranked candidate table (confirming U-03 rank #1), test 1-click AI loss explanation questions, and update the status to **"Under Review"** with audit trail logging.
+7. **Settings**: View backend service health, database mode (In-Memory Local Mode or Supabase), AI mode (Deterministic Demo or Gemini Live API), and ethical safeguards.
+
 
