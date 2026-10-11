@@ -80,3 +80,14 @@ BEGIN
         END LOOP;
     END LOOP;
 END $$;
+
+-- 6. Insert Seed Registered Agricultural Connections (Section F Agri Cluster)
+INSERT INTO agri_connections (service_id, farmer_name, survey_number, feeder_id, transformer_id, section_id, sanctioned_load_hp, sanctioned_load_kw, pump_type, permitted_use, irrigation_schedule_summary, meter_id, upstream_branch_id, is_active, is_simulated) VALUES
+('AGRI-TN-042-F01', 'S. Murugesan', '142/2A', 'T1', 'NODE_T1', 'F', 7.5, 5.60, 'Submersible Borewell Pump', 'Paddy & Groundnut Irrigation', 'Day: 07:00-11:00, Afternoon: 14:00-17:00', 'MTR_AGRI_01', 'U_06', TRUE, TRUE),
+('AGRI-TN-042-F02', 'K. Ramasamy', '145/1B', 'T1', 'NODE_T1', 'F', 10.0, 7.46, 'Deep Borewell Submersible Pump', 'Sugarcane & Banana Plantation', 'Morning: 06:30-10:30, Evening: 15:00-18:00', 'MTR_AGRI_02', 'U_06', TRUE, TRUE),
+('AGRI-TN-042-F03', 'M. Anbazhagan', '148/3', 'T1', 'NODE_T1', 'F', 5.0, 3.73, 'Surface Centrifugal Pump', 'Open Well Paddy Pumping', 'Morning: 07:00-11:00', 'MTR_AGRI_03', 'U_06', TRUE, TRUE),
+('AGRI-TN-042-F04', 'P. Selvi', '151/4A', 'T1', 'NODE_T1', 'F', 7.5, 5.60, 'Submersible Borewell Pump', 'Pulses & Cotton Irrigation', 'Morning: 07:30-11:30, Afternoon: 14:00-16:30', 'MTR_AGRI_04', 'U_06', TRUE, TRUE),
+('AGRI-TN-042-F05', 'V. Natarajan', '153/2', 'T1', 'NODE_T1', 'F', 5.0, 3.73, 'Submersible Borewell Pump', 'Vegetable Crop Drip Irrigation', 'Morning: 06:00-09:30, Evening: 16:00-18:30', 'MTR_AGRI_05', 'U_06', TRUE, TRUE),
+('AGRI-TN-042-F06', 'R. Chinnasamy', '156/1A', 'T1', 'NODE_T1', 'F', 10.0, 7.46, 'Deep Borewell Submersible Pump', 'Paddy Nursery & Coconut Grove', 'Morning: 07:00-12:00, Afternoon: 14:30-17:30', 'MTR_AGRI_06', 'U_06', TRUE, TRUE)
+ON CONFLICT (service_id) DO NOTHING;
+

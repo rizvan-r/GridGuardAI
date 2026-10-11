@@ -29,6 +29,7 @@ class AppStorage:
             "MTR_SEC_E",
             "MTR_SEC_F",
         ]
+        self.agri_audit_logs: List[Dict[str, Any]] = []
 
     def set_simulation(self, sim_data: Dict[str, Any], alerts: List[LossAlert]):
         self.current_simulation = sim_data
@@ -96,6 +97,40 @@ class AppStorage:
         elif not is_active and sensor_id in self.active_sensor_ids:
             self.active_sensor_ids.remove(sensor_id)
 
+    def log_agri_action(
+        self,
+        service_id: str,
+        action_type: str,
+        actor_name: str,
+        actor_role: str,
+        details: str,
+        alert_id: Optional[str] = None,
+        pre_state: Optional[Dict[str, Any]] = None,
+        post_state: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        log_entry = {
+            "id": f"AGRI-AUD-{uuid.uuid4().hex[:8].upper()}",
+            "alert_id": alert_id,
+            "service_id": service_id,
+            "action_type": action_type,
+            "actor_name": actor_name,
+            "actor_role": actor_role,
+            "details": details,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "pre_state": pre_state,
+            "post_state": post_state,
+        }
+        self.agri_audit_logs.append(log_entry)
+        return log_entry
+
+    def get_agri_audit_logs(self, service_id: Optional[str] = None, alert_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        res = self.agri_audit_logs
+        if service_id:
+            res = [l for l in res if l["service_id"] == service_id]
+        if alert_id:
+            res = [l for l in res if l.get("alert_id") == alert_id]
+        return res
+
     def _sync_alert_to_supabase(self, alert: LossAlert, audit: AuditRecord):
         try:
             from supabase import create_client
@@ -116,3 +151,4 @@ class AppStorage:
 
 # Singleton instance
 storage = AppStorage()
+

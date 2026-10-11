@@ -6,7 +6,8 @@ import {
   AlertTriangle, 
   SlidersHorizontal, 
   FileSearch, 
-  Settings 
+  Settings,
+  Tractor
 } from 'lucide-react';
 
 export default function BottomNav({ activePage, setActivePage, activeAlertsCount }) {
@@ -15,9 +16,11 @@ export default function BottomNav({ activePage, setActivePage, activeAlertsCount
     { id: 'livesim', label: 'Live Sim', icon: Radio, isLive: true },
     { id: 'network', label: 'Network', icon: Network },
     { id: 'anomaly', label: 'Anomalies', icon: AlertTriangle },
+    { id: 'agridiversion', label: 'Agri', icon: Tractor },
     { id: 'investigation', label: 'Alerts', icon: FileSearch, badge: activeAlertsCount },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
 
   return (
     <nav className="bottom-nav">

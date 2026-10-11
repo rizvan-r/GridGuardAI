@@ -11,6 +11,7 @@ import AnomalyDetectionPage from './pages/AnomalyDetectionPage';
 import MeasurementPlannerPage from './pages/MeasurementPlannerPage';
 import InvestigationCenterPage from './pages/InvestigationCenterPage';
 import SettingsPage from './pages/SettingsPage';
+import AgriDiversionPage from './pages/AgriDiversionPage';
 
 import { 
   fetchFeederSummary, 
@@ -97,6 +98,7 @@ export default function App() {
       case 'livesim': return 'Real-Time Live Simulation & Anomaly Review';
       case 'network': return 'Distribution Network Explorer';
       case 'anomaly': return 'Statistical Anomaly Detection';
+      case 'agridiversion': return 'Agricultural Electricity Diversion Detection';
       case 'planner': return 'Measurement Placement Planner';
       case 'investigation': return 'Investigation & Audit Center';
       case 'settings': return 'System Settings & Architecture';
@@ -179,6 +181,10 @@ export default function App() {
             <AnomalyDetectionPage 
               readings={readings}
             />
+          )}
+
+          {activePage === 'agridiversion' && (
+            <AgriDiversionPage />
           )}
 
           {activePage === 'planner' && (

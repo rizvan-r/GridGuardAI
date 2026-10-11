@@ -123,3 +123,126 @@ CREATE POLICY "Allow read on investigation_audit_records" ON investigation_audit
 -- Update and insert policies (typically authenticated service-role or operator)
 CREATE POLICY "Allow operator update on loss_alerts" ON loss_alerts FOR UPDATE USING (true);
 CREATE POLICY "Allow operator insert on investigation_audit_records" ON investigation_audit_records FOR INSERT WITH CHECK (true);
+
+-- ============================================================================
+-- 7. AGRICULTURAL DIVERSION DETECTION MODULE TABLES
+-- ============================================================================
+
+-- 7.1 AGRICULTURAL CONNECTIONS REGISTRY
+CREATE TABLE IF NOT EXISTS agri_connections (
+    service_id VARCHAR(50) PRIMARY KEY,
+    farmer_name VARCHAR(100) NOT NULL,
+    survey_number VARCHAR(50) NOT NULL,
+    feeder_id VARCHAR(50) NOT NULL REFERENCES feeders(id) ON DELETE CASCADE,
+    transformer_id VARCHAR(50) NOT NULL,
+    section_id VARCHAR(10) NOT NULL DEFAULT 'F',
+    sanctioned_load_hp NUMERIC(6, 2) NOT NULL,
+    sanctioned_load_kw NUMERIC(6, 2) NOT NULL,
+    pump_type VARCHAR(100) DEFAULT 'Submersible Borewell Pump',
+    permitted_use VARCHAR(100) DEFAULT 'Paddy & Groundnut Irrigation',
+    irrigation_schedule_summary VARCHAR(200) DEFAULT 'Day: 07:00-11:00, Afternoon: 14:00-17:00',
+    meter_id VARCHAR(50) NOT NULL,
+    upstream_branch_id VARCHAR(50) DEFAULT 'U_06',
+    is_active BOOLEAN DEFAULT TRUE,
+    is_simulated BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7.2 AGRICULTURAL SMART TELEMETRY READINGS
+CREATE TABLE IF NOT EXISTS agri_telemetry_readings (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    service_id VARCHAR(50) NOT NULL REFERENCES agri_connections(service_id) ON DELETE CASCADE,
+    interval_index INT NOT NULL CHECK (interval_index >= 0 AND interval_index < 96),
+    timestamp TIMESTAMPTZ NOT NULL,
+    voltage_v NUMERIC(6, 2) DEFAULT 230.0,
+    current_a NUMERIC(6, 2) DEFAULT 0.0,
+    active_power_kw NUMERIC(8, 3) NOT NULL,
+    cumulative_energy_kwh NUMERIC(10, 3) NOT NULL,
+    power_factor NUMERIC(4, 2) DEFAULT 0.80,
+    pump_operating_status VARCHAR(20) DEFAULT 'OFF' CHECK (pump_operating_status IN ('ON', 'OFF', 'IDLE', 'FAULT')),
+    upstream_section_energy_kwh NUMERIC(8, 3) DEFAULT 0.0,
+    upstream_branch_residual_kwh NUMERIC(8, 3) DEFAULT 0.0,
+    downstream_branch_energy_kwh NUMERIC(8, 3) DEFAULT 0.0,
+    data_quality VARCHAR(20) DEFAULT 'simulated',
+    is_simulated BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7.3 EVIDENCE-BASED AGRICULTURAL ALERTS
+CREATE TABLE IF NOT EXISTS agri_alerts (
+    id VARCHAR(50) PRIMARY KEY,
+    service_id VARCHAR(50) NOT NULL REFERENCES agri_connections(service_id) ON DELETE CASCADE,
+    section_id VARCHAR(10) NOT NULL DEFAULT 'F',
+    feeder_id VARCHAR(50) NOT NULL DEFAULT 'T1',
+    timestamp TIMESTAMPTZ NOT NULL,
+    time_window VARCHAR(100) NOT NULL,
+    interval_index INT NOT NULL,
+    severity VARCHAR(20) NOT NULL CHECK (severity IN ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL')),
+    risk_category VARCHAR(20) NOT NULL CHECK (risk_category IN ('LOW', 'MEDIUM', 'HIGH')),
+    anomaly_score NUMERIC(5, 2) NOT NULL,
+    suspected_diversion_type VARCHAR(100) NOT NULL,
+    diverted_energy_estimate_kwh NUMERIC(8, 2) NOT NULL,
+    observed_power_kw NUMERIC(8, 2) NOT NULL,
+    sanctioned_load_kw NUMERIC(8, 2) NOT NULL,
+    power_factor NUMERIC(4, 2) NOT NULL,
+    smallest_confirmed_monitoring_zone TEXT NOT NULL,
+    alternative_explanations JSONB DEFAULT '[]'::JSONB,
+    status VARCHAR(30) DEFAULT 'New' CHECK (status IN (
+        'New', 'Under Review', 'Inspection Scheduled', 'Inspection Completed',
+        'Diversion Confirmed', 'No Diversion Found', 'Inconclusive', 'Closed'
+    )),
+    assigned_inspector VARCHAR(100),
+    inspection_outcome_notes TEXT,
+    is_simulated BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7.4 AUTHORIZED AGRICULTURAL FIELD INSPECTION RECORDS
+CREATE TABLE IF NOT EXISTS agri_inspections (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    alert_id VARCHAR(50) NOT NULL REFERENCES agri_alerts(id) ON DELETE CASCADE,
+    service_id VARCHAR(50) NOT NULL REFERENCES agri_connections(service_id) ON DELETE CASCADE,
+    inspector_name VARCHAR(100) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    findings_notes TEXT,
+    corrective_action_taken TEXT,
+    is_meter_tampered BOOLEAN DEFAULT FALSE,
+    is_bypass_detected BOOLEAN DEFAULT FALSE,
+    non_agricultural_load_found_kw NUMERIC(6, 2) DEFAULT 0.0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7.5 AUDIT TRAIL FOR AGRICULTURAL SECURITY ACTIONS
+CREATE TABLE IF NOT EXISTS agri_audit_logs (
+    id VARCHAR(50) PRIMARY KEY,
+    alert_id VARCHAR(50),
+    service_id VARCHAR(50) NOT NULL,
+    action_type VARCHAR(50) NOT NULL,
+    actor_name VARCHAR(100) NOT NULL,
+    actor_role VARCHAR(100) NOT NULL,
+    details TEXT NOT NULL,
+    pre_state JSONB,
+    post_state JSONB,
+    timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_agri_telemetry_service ON agri_telemetry_readings(service_id, interval_index);
+CREATE INDEX IF NOT EXISTS idx_agri_alerts_service ON agri_alerts(service_id);
+CREATE INDEX IF NOT EXISTS idx_agri_alerts_status ON agri_alerts(status);
+
+-- RLS
+ALTER TABLE agri_connections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agri_telemetry_readings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agri_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agri_inspections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agri_audit_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow read on agri_connections" ON agri_connections FOR SELECT USING (true);
+CREATE POLICY "Allow read on agri_telemetry_readings" ON agri_telemetry_readings FOR SELECT USING (true);
+CREATE POLICY "Allow read on agri_alerts" ON agri_alerts FOR SELECT USING (true);
+CREATE POLICY "Allow read on agri_inspections" ON agri_inspections FOR SELECT USING (true);
+CREATE POLICY "Allow read on agri_audit_logs" ON agri_audit_logs FOR SELECT USING (true);
+

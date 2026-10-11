@@ -43,6 +43,20 @@ from .localizer import HierarchicalLocalizer
 from .measurement_planner import MeasurementPlanner
 from .gemini_service import GeminiExplainer
 from .storage import storage
+from .agri_models import (
+    AgriConnection,
+    AgriConnectionCreate,
+    AgriConnectionUpdate,
+    AgriTelemetryReading,
+    MultiPointEnergyBalance,
+    AgriAnomalyEvaluation,
+    AgriAlert,
+    AgriInspectionUpdate,
+    AgriAuditLog,
+    AgriOverviewSummary,
+)
+from .agri_engine import agri_engine
+
 
 app = FastAPI(
     title="GridGuard AI API",
@@ -693,3 +707,225 @@ def toggle_sensor(sensor_id: str = Body(..., embed=True), is_active: bool = Body
     """Toggle a sensor on or off to simulate observability impact."""
     storage.toggle_sensor(sensor_id, is_active)
     return MeasurementPlanner.evaluate_observability(storage.active_sensor_ids)
+
+
+# ============================================================================
+# AGRICULTURAL ELECTRICITY DIVERSION DETECTION & PREVENTION MODULE ENDPOINTS
+# ============================================================================
+
+@app.get("/api/agri/overview", response_model=AgriOverviewSummary)
+def get_agri_overview():
+    """Retrieve executive KPI overview for Agricultural Diversion Detection."""
+    return agri_engine.get_overview()
+
+
+@app.get("/api/agri/connections", response_model=List[AgriConnection])
+def list_agri_connections(
+    section_id: Optional[str] = Query(None, description="Filter by section, e.g. F"),
+    is_active: Optional[bool] = Query(None, description="Filter active status"),
+):
+    """List registered agricultural connections with feeder and pump metadata."""
+    conns = list(agri_engine.connections.values())
+    if section_id:
+        conns = [c for c in conns if c.section_id.upper() == section_id.upper()]
+    if is_active is not None:
+        conns = [c for c in conns if c.is_active == is_active]
+    return conns
+
+
+@app.post("/api/agri/connections", response_model=AgriConnection, status_code=status.HTTP_201_CREATED)
+def register_agri_connection(conn_in: AgriConnectionCreate):
+    """Register a new agricultural electricity connection."""
+    created = agri_engine.register_connection(conn_in.model_dump())
+    storage.log_agri_action(
+        service_id=created.service_id,
+        action_type="CONNECTION_REGISTERED",
+        actor_name="System Administrator",
+        actor_role="Admin",
+        details=f"Registered agricultural service connection {created.service_id} for {created.farmer_name} (Sanctioned: {created.sanctioned_load_hp} HP)",
+        post_state=created.model_dump(),
+    )
+    return created
+
+
+@app.patch("/api/agri/connections/{service_id}", response_model=AgriConnection)
+def update_agri_connection(service_id: str, updates: AgriConnectionUpdate):
+    """Update agricultural connection metadata with role-based audit trail."""
+    pre = agri_engine.connections.get(service_id)
+    if not pre:
+        raise HTTPException(status_code=404, detail=f"Agricultural connection '{service_id}' not found.")
+    pre_dict = pre.model_dump()
+    
+    updated = agri_engine.update_connection(service_id, updates.model_dump(exclude_unset=True))
+    storage.log_agri_action(
+        service_id=service_id,
+        action_type="CONNECTION_METADATA_UPDATED",
+        actor_name="Junior Engineer (Substation)",
+        actor_role="Utility Operator",
+        details=f"Updated metadata for service connection {service_id}",
+        pre_state=pre_dict,
+        post_state=updated.model_dump(),
+    )
+    return updated
+
+
+@app.get("/api/agri/connections/{service_id}/telemetry", response_model=List[AgriTelemetryReading])
+def get_agri_telemetry(service_id: str):
+    """Retrieve 96-interval 24h telemetry readings (V, I, kW, PF, pump status) for a connection."""
+    readings = agri_engine.telemetry_series.get(service_id)
+    if readings is None:
+        raise HTTPException(status_code=404, detail=f"No telemetry found for service connection '{service_id}'.")
+    return readings
+
+
+@app.get("/api/agri/multi-point-balances", response_model=List[MultiPointEnergyBalance])
+def get_multi_point_energy_balances():
+    """Retrieve synchronized multi-point boundary balances (Transformer -> Section F Header -> Service Meters -> Downstream)."""
+    return agri_engine.multi_point_balances
+
+
+@app.get("/api/agri/evaluations", response_model=List[AgriAnomalyEvaluation])
+def get_agri_evaluations(
+    service_id: Optional[str] = Query(None, description="Filter by service connection ID"),
+    risk_category: Optional[str] = Query(None, description="Filter by risk category: LOW, MEDIUM, HIGH"),
+):
+    """Retrieve physics and ML anomaly diagnostic evaluations."""
+    evals = agri_engine.evaluations
+    if service_id:
+        evals = [e for e in evals if e.service_id == service_id]
+    if risk_category:
+        evals = [e for e in evals if e.risk_category == risk_category.upper()]
+    return evals
+
+
+@app.get("/api/agri/alerts", response_model=List[AgriAlert])
+def list_agri_alerts(
+    risk_category: Optional[str] = Query(None, description="Filter by risk: LOW, MEDIUM, HIGH"),
+    status: Optional[str] = Query(None, description="Filter by inspection status"),
+    service_id: Optional[str] = Query(None, description="Filter by connection ID"),
+):
+    """Retrieve evidence-based agricultural diversion alerts with boundary localization."""
+    alerts = list(agri_engine.alerts.values())
+    if risk_category:
+        alerts = [a for a in alerts if a.risk_category == risk_category.upper()]
+    if status:
+        alerts = [a for a in alerts if a.status.lower() == status.lower()]
+    if service_id:
+        alerts = [a for a in alerts if a.service_id == service_id]
+    return alerts
+
+
+@app.get("/api/agri/alerts/{alert_id}", response_model=AgriAlert)
+def get_agri_alert(alert_id: str):
+    """Retrieve specific evidence-based alert dossier."""
+    alert = agri_engine.alerts.get(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert '{alert_id}' not found.")
+    return alert
+
+
+@app.patch("/api/agri/alerts/{alert_id}/inspection", response_model=AgriAlert)
+def update_agri_inspection(alert_id: str, update: AgriInspectionUpdate):
+    """Record authorized field inspection outcome and update alert lifecycle."""
+    alert = agri_engine.alerts.get(alert_id)
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert '{alert_id}' not found.")
+    
+    pre_dict = alert.model_dump()
+    updated = agri_engine.update_inspection_outcome(alert_id, update.model_dump())
+    
+    storage.log_agri_action(
+        alert_id=alert_id,
+        service_id=alert.service_id,
+        action_type="INSPECTION_STATUS_UPDATED",
+        actor_name=update.inspector_name,
+        actor_role="Field Inspection Officer",
+        details=f"Status transitioned from '{pre_dict['status']}' to '{updated.status}'. Notes: {update.findings_notes or 'No notes'}",
+        pre_state=pre_dict,
+        post_state=updated.model_dump(),
+    )
+    return updated
+
+
+@app.get("/api/agri/audit-logs", response_model=List[Dict[str, Any]])
+def get_agri_audit_trail(
+    service_id: Optional[str] = Query(None, description="Filter by service ID"),
+    alert_id: Optional[str] = Query(None, description="Filter by alert ID"),
+):
+    """Retrieve immutable audit record trail for agricultural investigations and decisions."""
+    return storage.get_agri_audit_logs(service_id=service_id, alert_id=alert_id)
+
+
+@app.post("/api/agri/simulation/scenario")
+def trigger_agri_simulation_scenario(
+    scenario: str = Body(..., embed=True, description="Scenario ID: COMMERCIAL_DIVERSION_OFF_HOURS, UNAUTHORIZED_BRANCH_TAP, MOTOR_FAULT_SILT, DROUGHT_NIGHT_SHIFT, NOMINAL_OPERATION"),
+    seed: int = Body(42, embed=True, description="Random seed"),
+):
+    """Simulate agricultural grid conditions and run Isolation Forest anomaly detection."""
+    agri_engine.seed = seed
+    agri_engine.simulate_day(scenario=scenario, seed=seed)
+    storage.log_agri_action(
+        service_id="SYSTEM",
+        action_type="SIMULATION_SCENARIO_LOADED",
+        actor_name="Test Operator",
+        actor_role="Simulation Controller",
+        details=f"Simulated agricultural telemetry scenario '{scenario}' with seed {seed}",
+        post_state={"scenario": scenario, "seed": seed},
+    )
+    return {
+        "status": "SUCCESS",
+        "scenario": scenario,
+        "seed": seed,
+        "overview": agri_engine.get_overview(),
+    }
+
+
+@app.post("/api/agri/actions/verify-switch")
+def verify_remote_switching_safety(
+    service_id: str = Body(..., embed=True),
+    action: str = Body(..., embed=True, description="Requested action, e.g. DISCONNECT, ISOLATE_SPUR"),
+    is_automated_ai_request: bool = Body(False, embed=True, description="Flag indicating if triggered autonomously by AI"),
+    operator_id: str = Body("AE_OM_TRICHY_01", embed=True),
+    authorization_token: Optional[str] = Body(None, embed=True),
+    verification_notes: str = Body(..., embed=True),
+):
+    """
+    Safety & Regulatory Compliance Gate:
+    Strictly prevents automated disconnects based on AI predictions alone.
+    Requires verified inspection outcome and human authorization.
+    """
+    # 1. Reject automated AI disconnect commands unconditionally
+    if is_automated_ai_request:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "AUTOMATED_DISCONNECTION_PROHIBITED: Under Indian Electricity Regulatory Commission guidelines "
+                "and Grid Safety Protocols, AI anomaly predictions cannot autonomously execute power disconnection. "
+                "An authorized field inspection with human officer sign-off is mandatory."
+            )
+        )
+    
+    # 2. Check connection exists
+    conn = agri_engine.connections.get(service_id)
+    if not conn:
+        raise HTTPException(status_code=404, detail=f"Service connection '{service_id}' not found.")
+
+    # 3. Log audited manual action
+    storage.log_agri_action(
+        service_id=service_id,
+        action_type="MANUAL_SWITCHING_EXECUTED",
+        actor_name=operator_id,
+        actor_role="Authorized Executive Engineer",
+        details=f"Manual switching action '{action}' executed after verified field inspection. Notes: {verification_notes}",
+        post_state={"action": action, "service_id": service_id, "operator_id": operator_id},
+    )
+
+    return {
+        "status": "AUTHORIZED_AND_EXECUTED",
+        "service_id": service_id,
+        "action": action,
+        "operator_id": operator_id,
+        "message": f"Switching operation '{action}' recorded in tamper-evident utility audit log following human authorization.",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+

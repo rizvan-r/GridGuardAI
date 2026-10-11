@@ -9,7 +9,8 @@ import {
   Settings, 
   Zap,
   ShieldCheck, 
-  X
+  X,
+  Tractor
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -25,10 +26,12 @@ export default function Sidebar({
     { id: 'livesim', label: 'Live Simulation', icon: Radio, isLive: true },
     { id: 'network', label: 'Network Explorer', icon: Network },
     { id: 'anomaly', label: 'Anomaly Detection', icon: AlertTriangle },
+    { id: 'agridiversion', label: 'Agri Diversion', icon: Tractor },
     { id: 'planner', label: 'Measurement Planner', icon: SlidersHorizontal },
     { id: 'investigation', label: 'Investigation Center', icon: FileSearch, badge: activeAlertsCount },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
 
   const handleNavClick = (id) => {
     setActivePage(id);
